@@ -211,7 +211,6 @@ const start = async () => {
         WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")} 
         AND ts IN ${SqlString.escape(date_i)} SAMPLE BY 2m)`;
       }
-      console.log(q);
       query_res = await c.query(q);
       var colors = palette('mpn65', req.body.emote.length);
       eresp.push(
