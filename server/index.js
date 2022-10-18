@@ -42,24 +42,32 @@ fetch(Url, Params)
 const authProvider = new ClientCredentialsAuthProvider(clientId, clientSecret);
 const apiClient = new ApiClient({ authProvider });
 
-const adapter = new ReverseProxyAdapter({
-  hostName: 'moon2lights.netlify.app',
-  port: 6971,
+// const adapter = new ReverseProxyAdapter({
+//   hostName: 'localhost',
+//   port: 3000,
+// });
 
-})
+const adapter = new DirectConnectionAdapter({
+	hostName: '137.184.42.175',
+	sslCert: {
+		key: fs.readFileSync('key.pem'),
+		cert: fs.readFileSync('cert.pem')
+	}
+});
 
 // const secret = eventSubSecret;
 
 const sender = new Sender({ bufferSize: 4096 });
 
+const listener = new EventSubListener({ 
+  apiClient, 
+  adapter: adapter, 
+  secret: eventSubSecret });
 async function eventListener(username) {
-
+  try {
+    await listener.listen();
+  } catch { };
   await apiClient.eventSub.deleteAllSubscriptions();
-  const listener = new EventSubListener({ 
-    apiClient, 
-    adapter: adapter, 
-    secret: eventSubSecret });
-  await listener.listen();
   const onlineSubscription = await listener.subscribeToStreamOnlineEvents(username.id, async e => {
     await sender.connect({ port: 9009, host: databaseIPV4 });
     username.live = true;
@@ -77,11 +85,14 @@ async function eventListener(username) {
   });
   username.onlineSub = onlineSubscription;
   username.offlineSub = offlineSubscription;
+  console.log(await onlineSubscription.getCliTestCommand());
 };
 
 
 const streamers = [
-  {name: 'MOONMOON', id: 121059319, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
+  // {name: 'MOONMOON', id: 121059319, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
+  {name: 'noomnoom', id: 701050844, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
+  
   // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
 ];
 const chatListeners = [];
@@ -91,10 +102,10 @@ for (let i = 0; i < streamers.length; i++) {
 };
 
 const app = express();
-var options = { origin: 'https://moon2lights.netlify.app' };
+// var options = { origin: 'https://moon2lights.netlify.app' };
 app.use(express.json());
-app.use(cors(options));
-app.options('*', cors(options));
+// app.use(cors(options));
+// app.options('*', cors(options));
 app.use(bodyParser.urlencoded({extended: false}));
 
 const insertion = async () => {
@@ -157,7 +168,9 @@ const insertion = async () => {
     if (c > 10) {
       console.log('sending');
       c = 0;
-      await sender.flush();
+      sender.reset();
+
+      // await sender.flush();
       if (!streamers[roomIndex].inVodLink) {
         vod_id = await apiClient.videos.getVideosByUser(streamers[roomIndex].id);
         vod_id = vod_id.data[0].id;
@@ -169,7 +182,8 @@ const insertion = async () => {
           .stringColumn('vid_no', vod_id)
           .stringColumn('stream_date', d)
           .atNow();
-        await vodSender.flush();
+        vodSender.reset()
+        // await vodSender.flush();
         vodSender.close();
         streamers[roomIndex].inVodLink = true;
       };
