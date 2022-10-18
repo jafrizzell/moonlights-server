@@ -42,18 +42,18 @@ fetch(Url, Params)
 const authProvider = new ClientCredentialsAuthProvider(clientId, clientSecret);
 const apiClient = new ApiClient({ authProvider });
 
-// const adapter = new ReverseProxyAdapter({
-//   hostName: 'localhost',
-//   port: 3000,
-// });
-
-const adapter = new DirectConnectionAdapter({
-	hostName: '137.184.42.175',
-	sslCert: {
-		key: fs.readFileSync('key.pem'),
-		cert: fs.readFileSync('cert.pem')
-	}
+const adapter = new ReverseProxyAdapter({
+  hostName: '137.184.42.175',
+  port: 6971,
 });
+
+// const adapter = new DirectConnectionAdapter({
+// 	hostName: '137.184.42.175',
+// 	sslCert: {
+// 		key: fs.readFileSync('key.pem'),
+// 		cert: fs.readFileSync('cert.pem')
+// 	}
+// });
 
 // const secret = eventSubSecret;
 
