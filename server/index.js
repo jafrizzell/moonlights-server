@@ -8,7 +8,7 @@ const Pool  = require('pg-pool');
 const { ClientCredentialsAuthProvider } = require('@twurple/auth');
 const { ApiClient } = require('@twurple/api');
 const { NgrokAdapter } = require('@twurple/eventsub-ngrok');
-const { DirectConnectionAdapter, EventSubListener, ReverseProxyAdapter } = require('@twurple/eventsub');
+const { DirectConnectionAdapter, EventSubListener, ReverseProxyAdapter, EventSubMiddleware } = require('@twurple/eventsub');
 const { Sender } = require("@questdb/nodejs-client");
 const bodyParser = require('body-parser');
 const palette = require('./palette');
@@ -42,10 +42,10 @@ fetch(Url, Params)
 const authProvider = new ClientCredentialsAuthProvider(clientId, clientSecret);
 const apiClient = new ApiClient({ authProvider });
 
-const adapter = new ReverseProxyAdapter({
-  hostName: '137.184.42.175',
-  port: 6971,
-});
+// const adapter = new ReverseProxyAdapter({
+//   hostName: '10.124.0.3:6971',
+//   // port: 6971,
+// });
 
 // const adapter = new DirectConnectionAdapter({
 // 	hostName: '137.184.42.175',
@@ -55,27 +55,34 @@ const adapter = new ReverseProxyAdapter({
 // 	}
 // });
 
+const middleware = new EventSubMiddleware({
+  apiClient,
+  hostName: '137.184.42.175:6969',
+  secret: eventSubSecret
+});
 // const secret = eventSubSecret;
 
 const sender = new Sender({ bufferSize: 4096 });
 
-const listener = new EventSubListener({ 
-  apiClient, 
-  adapter: adapter, 
-  secret: eventSubSecret });
+// const listener = new EventSubListener({ 
+//   apiClient, 
+//   adapter: adapter, 
+//   secret: eventSubSecret });
 async function eventListener(username) {
-  try {
-    await listener.listen();
-  } catch { };
-  await apiClient.eventSub.deleteAllSubscriptions();
-  const onlineSubscription = await listener.subscribeToStreamOnlineEvents(username.id, async e => {
+  // try {
+  //   await listener.listen();
+  // } catch { };
+  // await apiClient.eventSub.deleteAllSubscriptions();
+  // const onlineSubscription = await listener.subscribeToStreamOnlineEvents(username.id, async e => {
+  await middleware.subscribeToStreamOnlineEvents(username.id, async e => {
     await sender.connect({ port: 9009, host: databaseIPV4 });
     username.live = true;
     username.startTime = (new Date()).setHours(new Date().getHours - tz);
     console.log(`${e.broadcasterDisplayName} just went live!`);
   });
   
-  const offlineSubscription = await listener.subscribeToStreamOfflineEvents(username.id, async e => {
+  // const offlineSubscription = await listener.subscribeToStreamOfflineEvents(username.id, async e => {
+  await middleware.subscribeToStreamOfflineEvents(username.id, e => {
     sender.close();
     username.live = false;
     username.live = null;
@@ -83,9 +90,9 @@ async function eventListener(username) {
     username.startTime = null;
     console.log(`${e.broadcasterDisplayName} just went offline`);
   });
-  username.onlineSub = onlineSubscription;
-  username.offlineSub = offlineSubscription;
-  console.log(await onlineSubscription.getCliTestCommand());
+  // username.onlineSub = onlineSubscription;
+  // username.offlineSub = offlineSubscription;
+  // console.log(await onlineSubscription.getCliTestCommand());
 };
 
 
@@ -96,20 +103,27 @@ const streamers = [
   // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
 ];
 const chatListeners = [];
-for (let i = 0; i < streamers.length; i++) {
-  chatListeners.push(streamers[i].name.toLowerCase())
-  eventListener(streamers[i]);
-};
+// for (let i = 0; i < streamers.length; i++) {
+//   chatListeners.push(streamers[i].name.toLowerCase())
+//   eventListener(streamers[i]);
+// };
 
 const app = express();
-// var options = { origin: 'https://moon2lights.netlify.app' };
+var options = { origin: 'https://moon2lights.netlify.app' };
+
 app.use(express.json());
-// app.use(cors(options));
-// app.options('*', cors(options));
+app.use(cors(options));
+app.options('*', cors(options));
 app.use(bodyParser.urlencoded({extended: false}));
 
-const insertion = async () => {
 
+const insertion = async () => {
+  await middleware.apply(app);
+  for (let i = 0; i < streamers.length; i++) {
+    chatListeners.push(streamers[i].name.toLowerCase())
+    eventListener(streamers[i]);
+  };
+  // await listener.listen();
   const chatClient = new tmi.Client({
     channels: chatListeners
   });
