@@ -94,7 +94,7 @@ async function eventListener(username) {
   });
   username.onlineSub = onlineSubscription;
   username.offlineSub = offlineSubscription;
-  // console.log(await onlineSubscription.getCliTestCommand());
+  console.log(await onlineSubscription.getCliTestCommand());
 };
 
 
@@ -133,7 +133,7 @@ const insertion = async () => {
     channels: chatListeners
   });
 
-  await chatClient.connect();
+  chatClient.connect();
   var c = 0;
   let msgTime;
   let diff;
