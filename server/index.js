@@ -57,7 +57,7 @@ const apiClient = new ApiClient({ authProvider });
 
 const middleware = new EventSubMiddleware({
   apiClient,
-  hostName: '137.184.42.175:6969',
+  hostName: '164.90.246.172:6969',
   secret: eventSubSecret
 });
 // const secret = eventSubSecret;
@@ -81,6 +81,7 @@ async function eventListener(username) {
     username.startTime = (new Date()).setHours(new Date().getHours - tz);
     console.log(`${e.broadcasterDisplayName} just went live!`);
   });
+  console.log(middleware);
   
   // const offlineSubscription = await listener.subscribeToStreamOfflineEvents(username.id, async e => {
   await middleware.subscribeToStreamOfflineEvents(username.id, e => {
@@ -121,6 +122,7 @@ app.use(bodyParser.urlencoded({extended: false}));
 const insertion = async () => {
   console.log('adding middleware');
   await middleware.apply(app);
+  await middleware.markAsReady();
   for (let i = 0; i < streamers.length; i++) {
     chatListeners.push(streamers[i].name.toLowerCase())
     eventListener(streamers[i]);
