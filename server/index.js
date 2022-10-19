@@ -137,7 +137,9 @@ const insertion = async () => {
   let msgTime;
   let diff;
   let vod_id;
+  console.log('about to receive message');
   chatClient.on('message', async (channel, tags, message, self) => {
+    console.log('received message!');
     roomIndex = chatListeners.indexOf(channel)
     if (streamers[roomIndex].live === null) {
       stream = await apiClient.streams.getStreamByUserId(streamers[roomIndex].id);
