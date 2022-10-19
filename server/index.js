@@ -43,13 +43,13 @@ const authProvider = new ClientCredentialsAuthProvider(clientId, clientSecret);
 const apiClient = new ApiClient({ authProvider });
 
 
-const adapter = new ReverseProxyAdapter({
-  hostName: '137.184.42.175',
-  // port: 443,
-});
+// const adapter = new ReverseProxyAdapter({
+//   hostName: '137.184.42.175',
+//   // port: 443,
+// });
 
 // const adapter = new DirectConnectionAdapter({
-// 	hostName: '137.184.42.175',
+// 	hostName: 'localhost',
 // 	sslCert: {
 // 		key: fs.readFileSync('key.pem'),
 // 		cert: fs.readFileSync('cert.pem')
@@ -68,7 +68,8 @@ const sender = new Sender({ bufferSize: 4096 });
 
 const listener = new EventSubListener({ 
   apiClient, 
-  adapter: adapter, 
+  adapter: new NgrokAdapter(),
+  // adapter: adapter, 
   secret: eventSubSecret });
 async function eventListener(username) {
   console.log('adding event listeners');
