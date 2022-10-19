@@ -8,7 +8,7 @@ const Pool  = require('pg-pool');
 const { ClientCredentialsAuthProvider } = require('@twurple/auth');
 const { ApiClient } = require('@twurple/api');
 const { NgrokAdapter } = require('@twurple/eventsub-ngrok');
-const { DirectConnectionAdapter, EventSubListener, ReverseProxyAdapter, EventSubMiddleware } = require('@twurple/eventsub');
+const { DirectConnectionAdapter, EventSubListener, ReverseProxyAdapter, EventSubMiddleware, EnvPortAdapter } = require('@twurple/eventsub');
 const { Sender } = require("@questdb/nodejs-client");
 const bodyParser = require('body-parser');
 const palette = require('./palette');
@@ -42,9 +42,10 @@ fetch(Url, Params)
 const authProvider = new ClientCredentialsAuthProvider(clientId, clientSecret);
 const apiClient = new ApiClient({ authProvider });
 
+
 const adapter = new ReverseProxyAdapter({
   hostName: '137.184.42.175',
-  port: 6970,
+  // port: 443,
 });
 
 // const adapter = new DirectConnectionAdapter({
@@ -100,9 +101,9 @@ async function eventListener(username) {
 
 const streamers = [
   // {name: 'MOONMOON', id: 121059319, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
-  {name: 'noomnoom', id: 701050844, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
+  // {name: 'noomnoom', id: 701050844, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
   
-  // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
+  {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
 ];
 const chatListeners = [];
 for (let i = 0; i < streamers.length; i++) {
