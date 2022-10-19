@@ -226,7 +226,9 @@ const pool = new Pool({
   max: 20,
 })
 const start = async () => {
-
+  app.post("/eventsub/subscriptions", (req, res) => {
+    console.log('here22!');
+  })
 
   app.post("/fetch", async (req, res) => {
     const c = await pool.connect();
