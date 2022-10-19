@@ -44,8 +44,8 @@ const apiClient = new ApiClient({ authProvider });
 
 
 // const adapter = new ReverseProxyAdapter({
-//   hostName: '137.184.42.175',
-//   // port: 443,
+//   hostName: 'localhost',
+//   port: 6971,
 // });
 
 // const adapter = new DirectConnectionAdapter({
@@ -74,7 +74,7 @@ const listener = new EventSubListener({
 async function eventListener(username) {
   console.log('adding event listeners');
   try {
-  //   await listener.listen();
+    await listener.listen();
     await apiClient.eventSub.deleteAllSubscriptions();
   } catch { };
   const onlineSubscription = await listener.subscribeToStreamOnlineEvents(username.id, async e => {
@@ -130,7 +130,7 @@ const insertion = async () => {
   //   eventListener(streamers[i]);
   // };
   console.log('event listeners finished adding')
-  await listener.listen();
+  
   console.log('listening')
   const chatClient = new tmi.Client({
     channels: chatListeners
