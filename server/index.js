@@ -22,6 +22,7 @@ const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
 const tz = new Date().getTimezoneOffset() / 60;
 
+
 const Url = "https://id.twitch.tv/oauth2/token"
 const Data = {
   client_id: clientId,
@@ -49,20 +50,22 @@ const apiClient = new ApiClient({ authProvider });
 // });
 
 // const adapter = new DirectConnectionAdapter({
-// 	hostName: 'localhost',
+// 	hostName: '',
 // 	sslCert: {
 // 		key: fs.readFileSync('key.pem'),
 // 		cert: fs.readFileSync('cert.pem')
 // 	}
 // });
 
-// const middleware = new EventSubMiddleware({
-//   apiClient,
-//   hostName: '164.90.246.172:6969',
-//   pathPrefix: '/twitch',
-//   secret: eventSubSecret
-// });
-// const secret = eventSubSecret;
+const middleware = new EventSubMiddleware({
+  apiClient,
+  hostName: 'localhost',
+  pathPrefix: '/twitch',
+  logger: {minLevel: 'debug'},
+  secret: eventSubSecret
+});
+
+const secret = eventSubSecret;
 
 const sender = new Sender({ bufferSize: 4096 });
 
@@ -70,15 +73,18 @@ const listener = new EventSubListener({
   apiClient, 
   adapter: new NgrokAdapter(),
   // adapter: adapter, 
-  secret: eventSubSecret });
+  secret: eventSubSecret 
+});
+
 async function eventListener(username) {
   console.log('adding event listeners');
   try {
-    await listener.listen();
+    // await listener.listen();
     await apiClient.eventSub.deleteAllSubscriptions();
   } catch { };
-  const onlineSubscription = await listener.subscribeToStreamOnlineEvents(username.id, async e => {
-  // await middleware.subscribeToStreamOnlineEvents(username.id, async e => {
+  // const onlineSubscription = await listener.subscribeToStreamOnlineEvents(username.id, async e => {
+
+  await middleware.subscribeToStreamOnlineEvents(username.id, async e => {
     await sender.connect({ port: 9009, host: databaseIPV4 });
     username.live = true;
     username.startTime = (new Date()).setHours(new Date().getHours - tz);
@@ -94,9 +100,10 @@ async function eventListener(username) {
     username.startTime = null;
     console.log(`${e.broadcasterDisplayName} just went offline`);
   });
-  username.onlineSub = onlineSubscription;
-  username.offlineSub = offlineSubscription;
-  console.log(await onlineSubscription.getCliTestCommand());
+
+  // username.onlineSub = onlineSubscription;
+  // username.offlineSub = offlineSubscription;
+  // console.log(await onlineSubscription.getCliTestCommand());
 };
 
 
@@ -108,10 +115,10 @@ const streamers = [
   // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
 ];
 const chatListeners = [];
-for (let i = 0; i < streamers.length; i++) {
-  chatListeners.push(streamers[i].name.toLowerCase())
-  eventListener(streamers[i]);
-};
+// for (let i = 0; i < streamers.length; i++) {
+//   chatListeners.push(streamers[i].name.toLowerCase())
+//   eventListener(streamers[i]);
+// };
 
 const app = express();
 var options = { origin: 'https://moon2lights.netlify.app' };
@@ -123,12 +130,15 @@ app.use(bodyParser.urlencoded({extended: false}));
 
 
 const insertion = async () => {
-  // await middleware.apply(app);
-  // await middleware.markAsReady();
-  // for (let i = 0; i < streamers.length; i++) {
-  //   chatListeners.push(streamers[i].name.toLowerCase())
-  //   eventListener(streamers[i]);
-  // };
+  await middleware.apply(app);
+  await middleware.markAsReady();
+  await middleware.subscribeToStreamOnlineEvents('92639761', event => {
+    console.log('you went live!');
+  })
+  for (let i = 0; i < streamers.length; i++) {
+    chatListeners.push(streamers[i].name.toLowerCase())
+    eventListener(streamers[i]);
+  };
   console.log('event listeners finished adding')
   
   console.log('listening')
@@ -136,7 +146,7 @@ const insertion = async () => {
     channels: chatListeners
   });
   console.log('chat client attached');
-  chatClient.connect();
+  await chatClient.connect();
   console.log('chat client connected');
   var c = 0;
   let msgTime;
@@ -231,9 +241,10 @@ const pool = new Pool({
   max: 20,
 })
 const start = async () => {
-  // app.post("/eventsub/subscriptions", (req, res) => {
-  //   console.log('here22!');
-  // })
+  app.get("/auth", (req, res) => {
+    res.json('authenticated');
+
+  });
 
   app.post("/fetch", async (req, res) => {
     const c = await pool.connect();
