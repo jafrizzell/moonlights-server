@@ -44,7 +44,7 @@ const apiClient = new ApiClient({ authProvider });
 
 const adapter = new ReverseProxyAdapter({
   hostName: '137.184.42.175',
-  port: 443,
+  port: 6970,
 });
 
 // const adapter = new DirectConnectionAdapter({
@@ -70,11 +70,11 @@ const listener = new EventSubListener({
   adapter: adapter, 
   secret: eventSubSecret });
 async function eventListener(username) {
-  console.log('adding event listeners');
-  // try {
+  // console.log('adding event listeners');
+  try {
   //   await listener.listen();
-  // } catch { };
-  await apiClient.eventSub.deleteAllSubscriptions();
+    await apiClient.eventSub.deleteAllSubscriptions();
+  } catch { };
   const onlineSubscription = await listener.subscribeToStreamOnlineEvents(username.id, async e => {
   // await middleware.subscribeToStreamOnlineEvents(username.id, async e => {
     await sender.connect({ port: 9009, host: databaseIPV4 });
@@ -102,7 +102,7 @@ const streamers = [
   // {name: 'MOONMOON', id: 121059319, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
   {name: 'noomnoom', id: 701050844, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
   
-  {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
+  // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
 ];
 const chatListeners = [];
 for (let i = 0; i < streamers.length; i++) {
@@ -120,14 +120,14 @@ app.use(bodyParser.urlencoded({extended: false}));
 
 
 const insertion = async () => {
-  console.log('adding middleware');
+  // console.log('adding middleware');
   // await middleware.apply(app);
   // await middleware.markAsReady();
   // for (let i = 0; i < streamers.length; i++) {
   //   chatListeners.push(streamers[i].name.toLowerCase())
   //   eventListener(streamers[i]);
   // };
-  console.log('event listeners finished adding')
+  // console.log('event listeners finished adding')
   await listener.listen();
   const chatClient = new tmi.Client({
     channels: chatListeners
@@ -138,9 +138,9 @@ const insertion = async () => {
   let msgTime;
   let diff;
   let vod_id;
-  console.log('about to receive message');
+  // console.log('about to receive message');
   chatClient.on('message', async (channel, tags, message, self) => {
-    console.log('received message!');
+    // console.log('received message!');
     roomIndex = chatListeners.indexOf(channel)
     if (streamers[roomIndex].live === null) {
       stream = await apiClient.streams.getStreamByUserId(streamers[roomIndex].id);
