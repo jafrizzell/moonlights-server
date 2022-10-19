@@ -81,7 +81,6 @@ async function eventListener(username) {
     username.startTime = (new Date()).setHours(new Date().getHours - tz);
     console.log(`${e.broadcasterDisplayName} just went live!`);
   });
-  console.log(middleware);
   
   // const offlineSubscription = await listener.subscribeToStreamOfflineEvents(username.id, async e => {
   await middleware.subscribeToStreamOfflineEvents(username.id, e => {
