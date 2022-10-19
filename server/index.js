@@ -102,8 +102,9 @@ async function eventListener(username) {
 const streamers = [
   // {name: 'MOONMOON', id: 121059319, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
   // {name: 'noomnoom', id: 701050844, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
+  {name: 'meactually', id: 92639761, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
   
-  {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
+  // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
 ];
 const chatListeners = [];
 for (let i = 0; i < streamers.length; i++) {
