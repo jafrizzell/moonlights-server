@@ -70,7 +70,7 @@ const listener = new EventSubListener({
   adapter: adapter, 
   secret: eventSubSecret });
 async function eventListener(username) {
-  // console.log('adding event listeners');
+  console.log('adding event listeners');
   try {
   //   await listener.listen();
     await apiClient.eventSub.deleteAllSubscriptions();
@@ -120,14 +120,14 @@ app.use(bodyParser.urlencoded({extended: false}));
 
 
 const insertion = async () => {
-  // console.log('adding middleware');
+  console.log('adding middleware');
   // await middleware.apply(app);
   // await middleware.markAsReady();
   // for (let i = 0; i < streamers.length; i++) {
   //   chatListeners.push(streamers[i].name.toLowerCase())
   //   eventListener(streamers[i]);
   // };
-  // console.log('event listeners finished adding')
+  console.log('event listeners finished adding')
   await listener.listen();
   const chatClient = new tmi.Client({
     channels: chatListeners
@@ -138,9 +138,9 @@ const insertion = async () => {
   let msgTime;
   let diff;
   let vod_id;
-  // console.log('about to receive message');
+  console.log('about to receive message');
   chatClient.on('message', async (channel, tags, message, self) => {
-    // console.log('received message!');
+    console.log('received message!');
     roomIndex = chatListeners.indexOf(channel)
     if (streamers[roomIndex].live === null) {
       stream = await apiClient.streams.getStreamByUserId(streamers[roomIndex].id);
