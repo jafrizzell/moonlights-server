@@ -57,7 +57,7 @@ const apiClient = new ApiClient({ authProvider });
 
 const middleware = new EventSubMiddleware({
   apiClient,
-  hostName: '164.90.246.172:6969',
+  hostName: 'https://164.90.246.172:6969',
   secret: eventSubSecret
 });
 // const secret = eventSubSecret;
