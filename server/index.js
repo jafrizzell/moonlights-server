@@ -69,6 +69,7 @@ const sender = new Sender({ bufferSize: 4096 });
 //   adapter: adapter, 
 //   secret: eventSubSecret });
 async function eventListener(username) {
+  console.log('adding event listeners');
   // try {
   //   await listener.listen();
   // } catch { };
@@ -98,9 +99,9 @@ async function eventListener(username) {
 
 const streamers = [
   // {name: 'MOONMOON', id: 121059319, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
-  {name: 'noomnoom', id: 701050844, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
+  // {name: 'noomnoom', id: 701050844, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
   
-  // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
+  {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
 ];
 const chatListeners = [];
 // for (let i = 0; i < streamers.length; i++) {
@@ -118,11 +119,13 @@ app.use(bodyParser.urlencoded({extended: false}));
 
 
 const insertion = async () => {
+  console.log('adding middleware');
   await middleware.apply(app);
   for (let i = 0; i < streamers.length; i++) {
     chatListeners.push(streamers[i].name.toLowerCase())
     eventListener(streamers[i]);
   };
+  console.log('event listeners finished adding')
   // await listener.listen();
   const chatClient = new tmi.Client({
     channels: chatListeners
