@@ -133,7 +133,7 @@ const insertion = async () => {
     channels: chatListeners
   });
 
-  chatClient.connect();
+  await chatClient.connect();
   var c = 0;
   let msgTime;
   let diff;
