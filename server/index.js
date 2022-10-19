@@ -123,7 +123,6 @@ app.use(bodyParser.urlencoded({extended: false}));
 
 
 const insertion = async () => {
-  console.log('adding middleware');
   // await middleware.apply(app);
   // await middleware.markAsReady();
   // for (let i = 0; i < streamers.length; i++) {
@@ -132,11 +131,13 @@ const insertion = async () => {
   // };
   console.log('event listeners finished adding')
   await listener.listen();
+  console.log('listening')
   const chatClient = new tmi.Client({
     channels: chatListeners
   });
-
+  console.log('chat client attached');
   chatClient.connect();
+  console.log('chat client connected');
   var c = 0;
   let msgTime;
   let diff;
