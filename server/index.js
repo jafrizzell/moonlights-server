@@ -43,12 +43,22 @@ const apiClient = new ApiClient({ authProvider });
 
 
 const sender = new Sender({ bufferSize: 4096 });
+const vodSender = new Sender({ bufferSize: 4096});  // create and connect a sender for the vod_link table
+
 
 async function liveListener(streamer) {
   let stream;
   let vods;
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
-  
+  if (streamer.startTime === null) {
+    await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
+    try {
+      startTime = vods.data[0].creationDate;  // get the start time of the vod
+      startTime = startTime.setHours(startTime.getHours() - tz);
+      streamer.startTime = startTime;
+    } catch { }
+  }
+
   await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
   if (stream !== null) {
     console.log(`checking... ${stream.userName} is currently: `, stream.type, `@ ${new Date()}`);
@@ -58,13 +68,15 @@ async function liveListener(streamer) {
       startTime = vods.data[0].creationDate;  // get the start time of the vod
       startTime = startTime.setHours(startTime.getHours() - tz);
       streamer.startTime = startTime;
-
-      await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
+      try {
+        await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
+      } catch { }
 
       vod_id = vods.data[0].id;
       d = new Date(startTime).toISOString().split('T')[0];
-      const vodSender = new Sender({ bufferSize: 4096});  // create and connect a sender for the vod_link table
-      await vodSender.connect({ port: 9009, host: databaseIPV4 });
+      try {
+        await vodSender.connect({ port: 9009, host: databaseIPV4 });
+      } catch {}
       vodSender
         .table('vod_link')
         .stringColumn('vid_no', vod_id)
@@ -79,6 +91,7 @@ async function liveListener(streamer) {
       sender.close();
     }
     streamer.live = false;
+    streamer.startTime = null;
   }
 
 };
@@ -120,26 +133,30 @@ const insertion = async () => {
     if (new Date() - streamers[roomIndex].lastLiveCheck > 30000) {
       await liveListener(streamers[roomIndex]);
     };
+    console.log(streamers[roomIndex]);
     if (streamers[roomIndex].live) {
-      msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
-      msgTime.setHours(new Date().getHours() - 2* tz);
-      diff = (msgTime - streamers[roomIndex].startTime) / 1000;
-      msgTime.setHours(~~(diff/3600));
-      diff = diff % 3600;
-      msgTime.setMinutes(~~(diff/60));
-      diff = diff % 60;
-      msgTime.setSeconds(diff);
-      msgTime.setMilliseconds(0);
-      ttime = msgTime;
-      msgTime = msgTime.getTime() + '000000';
-      try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
-        c += 1;
-        sender
-          .table('chatters')
-          .stringColumn('username', tags['display-name'])
-          .stringColumn('message', message)
-          .at(msgTime);
-      } catch { }
+
+      if (streamers[roomIndex].startTime !== null) {
+        msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
+        msgTime.setHours(new Date().getHours() - 2* tz);
+        diff = (msgTime - streamers[roomIndex].startTime) / 1000;
+        msgTime.setHours(~~(diff/3600));
+        diff = diff % 3600;
+        msgTime.setMinutes(~~(diff/60));
+        diff = diff % 60;
+        msgTime.setSeconds(diff);
+        msgTime.setMilliseconds(0);
+        ttime = msgTime;
+        msgTime = msgTime.getTime() + '000000';
+        try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
+          c += 1;
+          sender
+            .table('chatters')
+            .stringColumn('username', tags['display-name'])
+            .stringColumn('message', message)
+            .at(msgTime);
+        } catch { }
+        }
       }
 
     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
