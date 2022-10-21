@@ -140,6 +140,7 @@ const insertion = async () => {
 
     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
       console.log(`sending from ${channel} @`, new Date());
+      console.log(msgTime);
       c = 0;
       sender.reset();  // comment this for testing to not send any data to the database
       // await sender.flush();
