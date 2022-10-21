@@ -245,6 +245,7 @@ const start = async () => {
     const uniqueDates = await c.query('SELECT DISTINCT stream_date FROM vod_link;');
     const max_res = await c.query('SELECT stream_date FROM vod_link ORDER BY stream_date DESC LIMIT 1;');
     c.release();
+    let stream;
     await apiClient.streams.getStreamByUserName(req.body.username).then((s) => stream = s);
     if (stream.type === 'live') {
       const live = true;
