@@ -174,11 +174,12 @@ const start = async () => {
     var labels = [];
     let query_res;
     console.log('querying for sampling rate');
-    const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/240 AS string)
+    rate = 240;  // first value = number of sampling periods, convert the timestamp to minutes
+    const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/${rate} AS string)
                         FROM 'chatters' WHERE ts IN '${date_i}';`
     const spacing = await c.query(sampling_q);
     console.log(spacing);
-    const sampling = spacing.rows[0].cast+'m';
+    const sampling = spacing.rows[0].cast+'s';
     console.log(sampling);
     for (let i=0; i < req.body.emote.length; i++) {
       emote_i = req.body.emote[i].label;
