@@ -48,9 +48,10 @@ async function liveListener(streamer) {
   let stream;
   let vods;
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
-  await apiClient.streams.getStreamByUserId(streamer.id).then((s) => stream = s);  // fetch the current stream state of the streamer
-  console.log(`checking... ${stream.userName} is currently: `, stream.type, `@ ${new Date()}`);
-  if (stream.type === 'live') {
+  
+  await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
+  if (stream !== null) {
+    console.log(`checking... ${stream.userName} is currently: `, stream.type, `@ ${new Date()}`);
     if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
       streamer.live = true;  // set the stream state to live
       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
@@ -80,11 +81,14 @@ async function liveListener(streamer) {
     }
     streamer.live = false;
   }
+
 };
 
 
 const streamers = [
   {name: 'MOONMOON', id: 121059319, live: null, startTime: false, lastLiveCheck: null},
+  // {name: 'A_Seagull', id: 19070311, live: null, startTime: false, lastLiveCheck: null},
+  // {name: 'HisWattson', id: 123182260, live: null, startTime: false, lastLiveCheck: null},
   // {name: 'meactually', id: 92639761, live: false, startTime: null, lastLiveCheck: null}, 
 ];
 const chatListeners = [];
@@ -246,7 +250,7 @@ const start = async () => {
     let lstream;
     let live;
     await apiClient.streams.getStreamByUserId(121059319).then((s) => lstream = s);
-    if (lstream.type === 'live') {
+    if (lstream !== null) {
       live = true;
     } else {
       live = false;
