@@ -172,17 +172,20 @@ const start = async () => {
     const eresp = [];
     var labels = [];
     let query_res;
+    const spacing = await c.query("SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/240 AS string) FROM 'chatters';")
+    const sampling = spacing.rows[0]+'m';
+    console.log(sampling)
     for (let i=0; i < req.body.emote.length; i++) {
       emote_i = req.body.emote[i].label;
       date_i = req.body.date;
       if (emote_i === 'All Chat Messages') {
         emote_i = 'All Chat Messages'
         q = `(SELECT ts, count() c FROM 'chatters'
-        WHERE ts in ${SqlString.escape(date_i)} SAMPLE BY 2m)`;
+        WHERE ts in ${SqlString.escape(date_i)} SAMPLE BY ${sampling})`;
       } else {
         q = `(SELECT ts, count() c FROM 'chatters' 
         WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")} 
-        AND ts IN ${SqlString.escape(date_i)} SAMPLE BY 2m)`;
+        AND ts IN ${SqlString.escape(date_i)} SAMPLE BY ${sampling})`;
       }
       query_res = await c.query(q);
       var colors = palette('mpn65', req.body.emote.length);
