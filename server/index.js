@@ -240,6 +240,7 @@ const start = async () => {
 
 
   app.post("/dates", async (req, res) => {
+    console.log(req.body.username);
     const c = await pool.connect();
     const uniqueDates = await c.query('SELECT DISTINCT stream_date FROM vod_link;');
     const max_res = await c.query('SELECT stream_date FROM vod_link ORDER BY stream_date DESC LIMIT 1;');
