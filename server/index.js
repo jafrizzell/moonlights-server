@@ -7,8 +7,6 @@ const fs = require('fs');
 const Pool  = require('pg-pool');
 const { ClientCredentialsAuthProvider } = require('@twurple/auth');
 const { ApiClient } = require('@twurple/api');
-const { NgrokAdapter } = require('@twurple/eventsub-ngrok');
-const { DirectConnectionAdapter, EventSubListener, ReverseProxyAdapter, EventSubMiddleware, EnvPortAdapter } = require('@twurple/eventsub');
 const { Sender } = require("@questdb/nodejs-client");
 const bodyParser = require('body-parser');
 const palette = require('./palette');
@@ -16,7 +14,7 @@ var SqlString = require('sqlstring');
 const credentials = require('../secrets/secrets.js');
 const PORT = process.env.PORT || 6969;
 const tmi = require('tmi.js');
-
+const { connected } = require("process");
 
 const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -44,81 +42,55 @@ const authProvider = new ClientCredentialsAuthProvider(clientId, clientSecret);
 const apiClient = new ApiClient({ authProvider });
 
 
-// const adapter = new ReverseProxyAdapter({
-//   hostName: 'localhost',
-//   port: 6971,
-// });
-
-// const adapter = new DirectConnectionAdapter({
-// 	hostName: '',
-// 	sslCert: {
-// 		key: fs.readFileSync('key.pem'),
-// 		cert: fs.readFileSync('cert.pem')
-// 	}
-// });
-
-const middleware = new EventSubMiddleware({
-  apiClient,
-  hostName: 'localhost',
-  pathPrefix: '/twitch',
-  logger: {minLevel: 'debug'},
-  secret: eventSubSecret
-});
-
-const secret = eventSubSecret;
-
 const sender = new Sender({ bufferSize: 4096 });
 
-const listener = new EventSubListener({ 
-  apiClient, 
-  adapter: new NgrokAdapter(),
-  // adapter: adapter, 
-  secret: eventSubSecret 
-});
+async function liveListener(streamer) {
+  let stream;
+  let vods;
+  streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
+  await apiClient.streams.getStreamByUserId(streamer.id).then((s) => stream = s);  // fetch the current stream state of the streamer
+  console.log(`checking... ${stream.userName} is currently: `, stream.type, `@ ${new Date()}`);
+  if (stream.type === 'live') {
+    if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
+      streamer.live = true;  // set the stream state to live
+      await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
+      startTime = vods.data[0].creationDate;  // get the start time of the vod
+      startTime = startTime.setHours(startTime.getHours() - tz);
+      streamer.startTime = startTime;
 
-async function eventListener(username) {
-  console.log('adding event listeners');
-  try {
-    // await listener.listen();
-    await apiClient.eventSub.deleteAllSubscriptions();
-  } catch { };
-  // const onlineSubscription = await listener.subscribeToStreamOnlineEvents(username.id, async e => {
+      await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
 
-  await middleware.subscribeToStreamOnlineEvents(username.id, async e => {
-    await sender.connect({ port: 9009, host: databaseIPV4 });
-    username.live = true;
-    username.startTime = (new Date()).setHours(new Date().getHours - tz);
-    console.log(`${e.broadcasterDisplayName} just went live!`);
-  });
-  
-  const offlineSubscription = await listener.subscribeToStreamOfflineEvents(username.id, async e => {
-  // await middleware.subscribeToStreamOfflineEvents(username.id, e => {
-    sender.close();
-    username.live = false;
-    username.live = null;
-    username.inVodLink = false;
-    username.startTime = null;
-    console.log(`${e.broadcasterDisplayName} just went offline`);
-  });
-
-  // username.onlineSub = onlineSubscription;
-  // username.offlineSub = offlineSubscription;
-  // console.log(await onlineSubscription.getCliTestCommand());
+      vod_id = vods.data[0].id;
+      d = new Date(startTime).toISOString().split('T')[0];
+      const vodSender = new Sender({ bufferSize: 4096});  // create and connect a sender for the vod_link table
+      await vodSender.connect({ port: 9009, host: databaseIPV4 });
+      vodSender
+        .table('vod_link')
+        .stringColumn('vid_no', vod_id)
+        .stringColumn('stream_date', d)
+        .atNow();
+      vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
+      console.log('sending vod data to vod_link')
+      // await vodSender.flush();  // comment this for the production version
+      vodSender.close();
+    }
+  } else {
+    if (streamer.live) { // if the previous state was live and the current state is not, un-initialize some variables
+      sender.close();
+    }
+    streamer.live = false;
+  }
 };
 
 
 const streamers = [
-  // {name: 'MOONMOON', id: 121059319, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
-  // {name: 'noomnoom', id: 701050844, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
-  {name: 'meactually', id: 92639761, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}, 
-  
-  // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, onlineSub: null, offlineSub: null, inVodLink: false}
+  {name: 'MOONMOON', id: 121059319, live: null, startTime: false, lastLiveCheck: null},
+  // {name: 'meactually', id: 92639761, live: false, startTime: null, lastLiveCheck: null}, 
 ];
 const chatListeners = [];
-// for (let i = 0; i < streamers.length; i++) {
-//   chatListeners.push(streamers[i].name.toLowerCase())
-//   eventListener(streamers[i]);
-// };
+for (let i = 0; i < streamers.length; i++) {
+  chatListeners.push(streamers[i].name.toLowerCase())
+};
 
 const app = express();
 var options = { origin: 'https://moon2lights.netlify.app' };
@@ -130,55 +102,23 @@ app.use(bodyParser.urlencoded({extended: false}));
 
 
 const insertion = async () => {
-  await middleware.apply(app);
-  await middleware.markAsReady();
-  await middleware.subscribeToStreamOnlineEvents('92639761', event => {
-    console.log('you went live!');
-  })
-  for (let i = 0; i < streamers.length; i++) {
-    chatListeners.push(streamers[i].name.toLowerCase())
-    eventListener(streamers[i]);
-  };
-  console.log('event listeners finished adding')
-  
-  console.log('listening')
   const chatClient = new tmi.Client({
     channels: chatListeners
   });
-  console.log('chat client attached');
+
   await chatClient.connect();
-  console.log('chat client connected');
   var c = 0;
   let msgTime;
   let diff;
-  let vod_id;
-  console.log('about to receive message');
-  chatClient.on('message', async (channel, tags, message, self) => {
-    console.log('received message!');
-    roomIndex = chatListeners.indexOf(channel)
-    if (streamers[roomIndex].live === null) {
-      stream = await apiClient.streams.getStreamByUserId(streamers[roomIndex].id);
-      try {
-        if (stream.type !== 'live') {
-          streamers[roomIndex].live = false;
-        } else {
-          streamers[roomIndex].live = true;
-          try {
-            await sender.connect({ port: 9009, host: databaseIPV4 });
-          } catch {};
-          startTime = await apiClient.videos.getVideosByUser(streamers[roomIndex].id);
-          startTime = startTime.data[0].creationDate;
-          startTime = startTime.setHours(startTime.getHours() - tz);
-          streamers[roomIndex].startTime = startTime;
-        };
-      }
-      catch {
-        streamers[roomIndex].live = false;
-      }
-    };
 
+  chatClient.on('message', async (channel, tags, message, self) => {
+    roomIndex = chatListeners.indexOf(channel);
+    // check live status every 30000 ms (30 seconds)
+    if (new Date() - streamers[roomIndex].lastLiveCheck > 30000) {
+      await liveListener(streamers[roomIndex]);
+    };
     if (streamers[roomIndex].live) {
-      msgTime = new Date();
+      msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
       msgTime.setHours(new Date().getHours() - 2* tz);
       diff = (msgTime - streamers[roomIndex].startTime) / 1000;
       msgTime.setHours(~~(diff/3600));
@@ -188,40 +128,21 @@ const insertion = async () => {
       msgTime.setSeconds(diff);
       msgTime.setMilliseconds(0);
       msgTime = msgTime.getTime() + '000000';
-      try {
+      try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
         c += 1;
         sender
           .table('chatters')
           .stringColumn('username', tags['display-name'])
           .stringColumn('message', message)
           .at(msgTime);
-      } catch {
-
-      }
+      } catch { }
       }
 
-    if (c > 10) {
-      console.log('sending');
+    if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
+      console.log(`sending from ${channel} @`, new Date());
       c = 0;
-      sender.reset();
-
+      sender.reset();  // comment this for testing to not send any data to the database
       // await sender.flush();
-      if (!streamers[roomIndex].inVodLink) {
-        vod_id = await apiClient.videos.getVideosByUser(streamers[roomIndex].id);
-        vod_id = vod_id.data[0].id;
-        d = (new Date(streamers[roomIndex].startTime)).toISOString().split('T')[0];
-        const vodSender = new Sender({ bufferSize: 4096});
-        await vodSender.connect({ port: 9009, host: databaseIPV4 });
-        vodSender
-          .table('vod_link')
-          .stringColumn('vid_no', vod_id)
-          .stringColumn('stream_date', d)
-          .atNow();
-        vodSender.reset()
-        // await vodSender.flush();
-        vodSender.close();
-        streamers[roomIndex].inVodLink = true;
-      };
     };
   });
 };
@@ -229,7 +150,6 @@ insertion().catch(console.error);
 
 
 // "use strict"
-
 
 
 const pool = new Pool({
