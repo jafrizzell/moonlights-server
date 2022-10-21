@@ -70,9 +70,8 @@ async function liveListener(streamer) {
         .stringColumn('vid_no', vod_id)
         .stringColumn('stream_date', d)
         .atNow();
-      vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
-      console.log('sending vod data to vod_link')
-      // await vodSender.flush();  // comment this for the production version
+      // vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
+      await vodSender.flush();  // comment this for the production version
       vodSender.close();
     }
   } else {
@@ -146,8 +145,8 @@ const insertion = async () => {
     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
       console.log(`sending from ${channel} @`, new Date());
       c = 0;
-      sender.reset();  // comment this for testing to not send any data to the database
-      // await sender.flush();
+      // sender.reset();  // comment this for testing to not send any data to the database
+      await sender.flush();
     };
   });
 };
