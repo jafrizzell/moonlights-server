@@ -168,17 +168,19 @@ const start = async () => {
   });
 
   app.post("/fetch", async (req, res) => {
+    date_i = req.body.date;
     const c = await pool.connect();
     const eresp = [];
     var labels = [];
     let query_res;
     console.log('querying for sampling rate');
-    const spacing = await c.query("SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/240 AS string) FROM 'chatters';");
+    const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/240 AS string)
+                        FROM 'chatters' WHERE ts IN '${date_i}';`
+    const spacing = await c.query(sampling_q);
     const sampling = spacing.rows[0]+'m';
     console.log(sampling);
     for (let i=0; i < req.body.emote.length; i++) {
       emote_i = req.body.emote[i].label;
-      date_i = req.body.date;
       if (emote_i === 'All Chat Messages') {
         emote_i = 'All Chat Messages'
         q = `(SELECT ts, count() c FROM 'chatters'
