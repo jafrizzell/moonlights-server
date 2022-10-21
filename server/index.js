@@ -208,11 +208,11 @@ const start = async () => {
       if (emote_i === 'All Chat Messages') {
         emote_i = 'All Chat Messages'
         q = `(SELECT ts, count() c FROM 'chatters'
-        WHERE ts in ${SqlString.escape(date_i)} SAMPLE BY ${sampling})`;
+        WHERE ts in ${SqlString.escape(date_i)} SAMPLE BY ${sampling}) FILL(0)`;
       } else {
         q = `(SELECT ts, count() c FROM 'chatters' 
         WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")} 
-        AND ts IN ${SqlString.escape(date_i)} SAMPLE BY ${sampling})`;
+        AND ts IN ${SqlString.escape(date_i)} SAMPLE BY ${sampling}) FILL(0)`;
       }
       query_res = await c.query(q);
       var colors = palette('mpn65', req.body.emote.length);
