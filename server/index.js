@@ -178,7 +178,6 @@ const start = async () => {
     const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/${rate} AS string)
                         FROM 'chatters' WHERE ts IN '${date_i}';`
     const spacing = await c.query(sampling_q);
-    console.log(spacing);
     if (spacing.rows[0].cast < 1) {
       spacing.rows[0].cast = 1;
     };
@@ -247,7 +246,6 @@ const start = async () => {
     let lstream;
     let live;
     await apiClient.streams.getStreamByUserId(121059319).then((s) => lstream = s);
-    console.log(lstream.type);
     if (lstream.type === 'live') {
       live = true;
     } else {
