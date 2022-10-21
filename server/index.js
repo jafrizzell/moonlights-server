@@ -86,8 +86,8 @@ async function liveListener(streamer) {
 
 
 const streamers = [
-  // {name: 'MOONMOON', id: 121059319, live: null, startTime: false, lastLiveCheck: null},
-  {name: 'A_Seagull', id: 19070311, live: null, startTime: false, lastLiveCheck: null},
+  {name: 'MOONMOON', id: 121059319, live: null, startTime: false, lastLiveCheck: null},
+  // {name: 'A_Seagull', id: 19070311, live: null, startTime: false, lastLiveCheck: null},
   // {name: 'HisWattson', id: 123182260, live: null, startTime: false, lastLiveCheck: null},
   // {name: 'meactually', id: 92639761, live: false, startTime: null, lastLiveCheck: null}, 
 ];
@@ -249,7 +249,7 @@ const start = async () => {
     c.release();
     let lstream;
     let live;
-    await apiClient.streams.getStreamByUserId(121059319).then((s) => lstream = s);
+    await apiClient.streams.getStreamByUserName(req.body.username).then((s) => lstream = s);
     if (lstream !== null) {
       live = true;
     } else {
