@@ -178,7 +178,7 @@ const start = async () => {
                         FROM 'chatters' WHERE ts IN '${date_i}';`
     const spacing = await c.query(sampling_q);
     console.log(spacing);
-    const sampling = spacing.rows[0]+'m';
+    const sampling = spacing.rows[0].cast+'m';
     console.log(sampling);
     for (let i=0; i < req.body.emote.length; i++) {
       emote_i = req.body.emote[i].label;
