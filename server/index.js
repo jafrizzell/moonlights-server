@@ -127,6 +127,7 @@ const insertion = async () => {
       diff = diff % 60;
       msgTime.setSeconds(diff);
       msgTime.setMilliseconds(0);
+      ttime = msgTime;
       msgTime = msgTime.getTime() + '000000';
       try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
         c += 1;
@@ -140,7 +141,6 @@ const insertion = async () => {
 
     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
       console.log(`sending from ${channel} @`, new Date());
-      console.log(msgTime);
       c = 0;
       sender.reset();  // comment this for testing to not send any data to the database
       // await sender.flush();
