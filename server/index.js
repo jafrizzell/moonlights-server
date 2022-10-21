@@ -174,11 +174,14 @@ const start = async () => {
     var labels = [];
     let query_res;
     console.log('querying for sampling rate');
-    rate = 240;  // first value = number of sampling periods, convert the timestamp to minutes
+    rate = 240;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
     const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/${rate} AS string)
                         FROM 'chatters' WHERE ts IN '${date_i}';`
     const spacing = await c.query(sampling_q);
     console.log(spacing);
+    if (spacing.rows[0].cast < 1) {
+      spacing.rows[0].cast = 1;
+    };
     const sampling = spacing.rows[0].cast+'s';
     console.log(sampling);
     for (let i=0; i < req.body.emote.length; i++) {
@@ -236,12 +239,18 @@ const start = async () => {
   });
 
 
-  app.get("/dates", async (req, res) => {
+  app.post("/dates", async (req, res) => {
     const c = await pool.connect();
     const uniqueDates = await c.query('SELECT DISTINCT stream_date FROM vod_link;');
     const max_res = await c.query('SELECT stream_date FROM vod_link ORDER BY stream_date DESC LIMIT 1;');
     c.release();
-    res.json({dates: uniqueDates.rows, maxDate: max_res.rows});
+    await apiClient.streams.getStreamByUserName(req.body.username).then((s) => stream = s);
+    if (stream.type === 'live') {
+      const live = true;
+    } else {
+      const live = false;
+    }
+    res.json({dates: uniqueDates.rows, maxDate: max_res.rows, live: live});
     ;
 
 });
