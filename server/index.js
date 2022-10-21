@@ -172,6 +172,7 @@ const start = async () => {
     const eresp = [];
     var labels = [];
     let query_res;
+    console.log('querying for sampling rate');
     const spacing = await c.query("SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/240 AS string) FROM 'chatters';");
     const sampling = spacing.rows[0]+'m';
     console.log(sampling);
