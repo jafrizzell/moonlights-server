@@ -172,9 +172,9 @@ const start = async () => {
     const eresp = [];
     var labels = [];
     let query_res;
-    const spacing = await c.query("SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/240 AS string) FROM 'chatters';")
+    const spacing = await c.query("SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/240 AS string) FROM 'chatters';");
     const sampling = spacing.rows[0]+'m';
-    console.log(sampling)
+    console.log(sampling);
     for (let i=0; i < req.body.emote.length; i++) {
       emote_i = req.body.emote[i].label;
       date_i = req.body.date;
