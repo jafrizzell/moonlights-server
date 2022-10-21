@@ -177,6 +177,7 @@ const start = async () => {
     const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/240 AS string)
                         FROM 'chatters' WHERE ts IN '${date_i}';`
     const spacing = await c.query(sampling_q);
+    console.log(spacing);
     const sampling = spacing.rows[0]+'m';
     console.log(sampling);
     for (let i=0; i < req.body.emote.length; i++) {
