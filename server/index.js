@@ -79,8 +79,8 @@ async function liveListener(streamer) {
         .stringColumn('vid_no', vod_id)
         .stringColumn('stream_date', d)
         .atNow();
-      vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
-      // await vodSender.flush();  // comment this for the production version
+      // vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
+      await vodSender.flush();  // comment this for the production version
       vodSender.close();
     }
   } else {
@@ -96,10 +96,10 @@ async function liveListener(streamer) {
 
 
 const streamers = [
-  // {name: 'MOONMOON', id: 121059319, live: null, startTime: false, lastLiveCheck: null},
+  {name: 'MOONMOON', id: 121059319, live: null, startTime: false, lastLiveCheck: null},
   // {name: 'A_Seagull', id: 19070311, live: null, startTime: false, lastLiveCheck: null},
   // {name: 'HisWattson', id: 123182260, live: null, startTime: false, lastLiveCheck: null},
-  {name: 'meactually', id: 92639761, live: false, startTime: null, lastLiveCheck: null}, 
+  // {name: 'meactually', id: 92639761, live: false, startTime: null, lastLiveCheck: null}, 
 ];
 const chatListeners = [];
 for (let i = 0; i < streamers.length; i++) {
@@ -159,8 +159,8 @@ const insertion = async () => {
     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
       console.log(`sending from ${channel} @`, new Date());
       c = 0;
-      sender.reset();  // comment this for testing to not send any data to the database
-      // await sender.flush();
+      // sender.reset();  // comment this for testing to not send any data to the database
+      await sender.flush();
     };
   });
 };
