@@ -84,6 +84,7 @@ async function liveListener(streamer) {
       vodSender.close();
     }
   } else {
+    console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
     if (streamer.live) { // if the previous state was live and the current state is not, un-initialize some variables
       sender.close();
     }
