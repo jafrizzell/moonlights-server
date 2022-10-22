@@ -1,7 +1,5 @@
 const express = require("express");
-const crypto = require('crypto');
 var cors = require('cors');
-// const { Client } = require("pg");
 const https = require('https');
 const fs = require('fs');
 const Pool  = require('pg-pool');
@@ -14,7 +12,6 @@ var SqlString = require('sqlstring');
 const credentials = require('../secrets/secrets.js');
 const PORT = process.env.PORT || 6969;
 const tmi = require('tmi.js');
-const { connected } = require("process");
 
 const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -82,8 +79,8 @@ async function liveListener(streamer) {
         .stringColumn('vid_no', vod_id)
         .stringColumn('stream_date', d)
         .atNow();
-      // vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
-      await vodSender.flush();  // comment this for the production version
+      vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
+      // await vodSender.flush();  // comment this for the production version
       vodSender.close();
     }
   } else {
@@ -133,7 +130,6 @@ const insertion = async () => {
     if (new Date() - streamers[roomIndex].lastLiveCheck > 30000) {
       await liveListener(streamers[roomIndex]);
     };
-    console.log(streamers[roomIndex]);
     if (streamers[roomIndex].live) {
 
       if (streamers[roomIndex].startTime !== null) {
@@ -162,8 +158,8 @@ const insertion = async () => {
     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
       console.log(`sending from ${channel} @`, new Date());
       c = 0;
-      // sender.reset();  // comment this for testing to not send any data to the database
-      await sender.flush();
+      sender.reset();  // comment this for testing to not send any data to the database
+      // await sender.flush();
     };
   });
 };
