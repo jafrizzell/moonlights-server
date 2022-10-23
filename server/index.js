@@ -47,23 +47,29 @@ async function liveListener(streamer) {
   let stream;
   let vods;
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
-  if (streamer.startTime === null) {
-    await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
-    try {
-      startTime = vods.data[0].creationDate;  // get the start time of the vod
-      startTime = startTime.setHours(startTime.getHours() - tz);
-      streamer.startTime = startTime;
-    } catch { }
-  }
+  // if (streamer.startTime === null) {
+  //   await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
+  //   try {
+  //     startTime = vods.data[0].creationDate;  // get the start time of the vod
+  //     startTime = startTime.setHours(startTime.getHours() - tz);
+  //     streamer.startTime = startTime;
+  //   } catch { }
+  // }
 
   await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
   if (stream !== null) {
-    console.log(`checking... ${stream.userName} is currently: `, stream.type, `@ ${new Date()}`);
+    console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
     if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
       streamer.live = true;  // set the stream state to live
       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
-      startTime = vods.data[0].creationDate;  // get the start time of the vod
-      startTime = startTime.setHours(startTime.getHours() - tz);
+      // startTime = vods.data[0].creationDate;  // get the start time of the vod
+      startTime = new Date(vods.data[0].creationDate);
+      if (new Date - startTime > 90000) {  // Sometimes the twitch vod won't appear quickly
+        // This causes the stream to be "live", but the code will pull the previous stream vod as the start time 
+        // In this case, we assume that the stream went live 90 seconds ago
+        startTime = new Date(new Date() - 90000);
+        console.log("I had to correct the start time.");
+      }
       streamer.startTime = startTime;
       try {
         await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
@@ -107,8 +113,8 @@ for (let i = 0; i < streamers.length; i++) {
 };
 
 const app = express();
-var options = { origin: 'https://moon2lights.netlify.app' };  // For production deployment
-// var options = { origin: 'http://localhost:3000' };  // For local testing
+// var options = { origin: 'https://moon2lights.netlify.app' };  // For production deployment
+var options = { origin: 'http://localhost:3000' };  // For local testing
 app.use(express.json());
 app.use(cors(options));
 app.options('*', cors(options));
@@ -135,7 +141,7 @@ const insertion = async () => {
 
       if (streamers[roomIndex].startTime !== null) {
         msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
-        msgTime.setHours(new Date().getHours() - 2* tz);
+        msgTime.setHours(new Date().getHours() - tz);
         diff = (msgTime - streamers[roomIndex].startTime) / 1000;
         msgTime.setHours(~~(diff/3600));
         diff = diff % 3600;
