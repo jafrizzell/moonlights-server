@@ -107,8 +107,8 @@ for (let i = 0; i < streamers.length; i++) {
 };
 
 const app = express();
-var options = { origin: 'https://moon2lights.netlify.app' };
-
+var options = { origin: 'https://moon2lights.netlify.app' };  // For production deployment
+// var options = { origin: 'http://localhost:3000' };  // For local testing
 app.use(express.json());
 app.use(cors(options));
 app.options('*', cors(options));
@@ -256,7 +256,7 @@ const start = async () => {
 
   app.post("/dates", async (req, res) => {
     const c = await pool.connect();
-    const uniqueDates = await c.query('SELECT DISTINCT stream_date FROM vod_link;');
+    const uniqueDates = await c.query('SELECT DISTINCT * FROM vod_link;');
     const max_res = await c.query('SELECT stream_date FROM vod_link ORDER BY stream_date DESC LIMIT 1;');
     c.release();
     let lstream;
@@ -285,10 +285,13 @@ const start = async () => {
     ;
   });
 
+  app.get("/dev", (req, res) => {
+    res.json({response: "Im here!"})
+  })
 }
 start().catch(console.error());
 
-
+// un-comment this for deployment
 https
   .createServer(
     {
@@ -299,6 +302,8 @@ https
   .listen(PORT, () => {
     console.log(`Server listening on ${PORT}`);  
   })
+
+// un-comment this for testing
 // app.listen(PORT, () => {
 //   console.log(`Server listening on ${PORT}`);
 // });
