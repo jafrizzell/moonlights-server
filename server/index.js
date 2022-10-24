@@ -47,15 +47,6 @@ async function liveListener(streamer) {
   let stream;
   let vods;
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
-  // if (streamer.startTime === null) {
-  //   await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
-  //   try {
-  //     startTime = vods.data[0].creationDate;  // get the start time of the vod
-  //     startTime = startTime.setHours(startTime.getHours() - tz);
-  //     streamer.startTime = startTime;
-  //   } catch { }
-  // }
-
   await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
   if (stream !== null) {
     console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
@@ -140,24 +131,26 @@ const insertion = async () => {
     if (streamers[roomIndex].live) {
 
       if (streamers[roomIndex].startTime !== null) {
+        ttime = new Date(streamers[roomIndex].startTime);
+        ttime.setHours(ttime.getHours() - tz);
         msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
-        msgTime.setHours(new Date().getHours() - tz);
-        diff = (msgTime - streamers[roomIndex].startTime) / 1000;
-        msgTime.setHours(~~(diff/3600));
+        msgTime.setHours(msgTime.getHours() - tz);
+        diff = (msgTime - ttime) / 1000;
+        ttime.setHours(~~(diff/3600) - tz);
         diff = diff % 3600;
-        msgTime.setMinutes(~~(diff/60));
+        ttime.setMinutes(~~(diff/60));
         diff = diff % 60;
-        msgTime.setSeconds(diff);
-        msgTime.setMilliseconds(0);
-        ttime = msgTime;
-        msgTime = msgTime.getTime() + '000000';
+        ttime.setSeconds(diff);
+        ttime.setMilliseconds(000);
+        console.log(ttime);
+        ttime = ttime.getTime() + '000000';
         try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
           c += 1;
           sender
             .table('chatters')
             .stringColumn('username', tags['display-name'])
             .stringColumn('message', message)
-            .at(msgTime);
+            .at(ttime);
         } catch { }
         }
       }
