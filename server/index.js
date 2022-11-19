@@ -39,8 +39,10 @@ const authProvider = new ClientCredentialsAuthProvider(clientId, clientSecret);
 const apiClient = new ApiClient({ authProvider });
 
 
-const sender = new Sender({ bufferSize: 4096 });
-const vodSender = new Sender({ bufferSize: 4096});  // create and connect a sender for the vod_link table
+// const sender = new Sender({ bufferSize: 4096 });
+// const vodSender = new Sender({ bufferSize: 4096});  // create and connect a sender for the vod_link table
+let sender;
+let vodSender;
 
 
 async function liveListener(streamer) {
@@ -49,7 +51,7 @@ async function liveListener(streamer) {
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
   await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
   if (stream !== null) {
-    console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
+    // console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
     if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
       streamer.live = true;  // set the stream state to live
       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
@@ -63,12 +65,14 @@ async function liveListener(streamer) {
       }
       streamer.startTime = startTime;
       try {
+        sender = new Sender({bufferSize: 4096});
         await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
       } catch { }
 
       vod_id = vods.data[0].id;
       d = new Date(startTime).toISOString().split('T')[0];
       try {
+        vodSender = new Sender({ bufferSize: 4096});
         await vodSender.connect({ port: 9009, host: databaseIPV4 });
       } catch {}
       vodSender
@@ -81,7 +85,7 @@ async function liveListener(streamer) {
       vodSender.close();
     }
   } else {
-    console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
+    // console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
     if (streamer.live) { // if the previous state was live and the current state is not, un-initialize some variables
       sender.close();
     }
@@ -142,7 +146,6 @@ const insertion = async () => {
         diff = diff % 60;
         ttime.setSeconds(diff);
         ttime.setMilliseconds(000);
-        console.log(ttime);
         ttime = ttime.getTime() + '000000';
         try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
           c += 1;
@@ -156,7 +159,7 @@ const insertion = async () => {
       }
 
     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
-      console.log(`sending from ${channel} @`, new Date());
+      // console.log(`sending from ${channel} @`, new Date());
       c = 0;
       // sender.reset();  // comment this for testing to not send any data to the database
       await sender.flush();
