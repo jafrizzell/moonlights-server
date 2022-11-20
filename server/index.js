@@ -17,6 +17,14 @@ const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
 const tz = new Date().getTimezoneOffset() / 60;
 
+const pool = new Pool({
+  database: "chatters",
+  host: databaseIPV4,
+  password: "quest",
+  port: 8812,
+  user: "admin",
+  max: 20,
+})
 
 const Url = "https://id.twitch.tv/oauth2/token"
 const Data = {
@@ -51,7 +59,7 @@ async function liveListener(streamer) {
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
   await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
   if (stream !== null) {
-    // console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
+    console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
     if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
       streamer.live = true;  // set the stream state to live
       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
@@ -64,13 +72,23 @@ async function liveListener(streamer) {
         console.log("I had to correct the start time.");
       }
       streamer.startTime = startTime;
+      streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
+      const c = await pool.connect();
+      q = `SELECT * FROM vod_link ORDER BY stream_date DESC LIMIT 1`;
+      query_res = await c.query(q);
+      console.log(query_res)
       try {
         sender = new Sender({bufferSize: 4096});
         await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
       } catch { }
 
       vod_id = vods.data[0].id;
-      d = new Date(startTime).toISOString().split('T')[0];
+      d = new Date(streamer.streamerLocalTime).toISOString().split('T')[0];
+      if (d === query_res.rows.stream_date) {
+        q2 = `SELECT * FROM chatters ORDER BY ts DESC LIMIT 1`;
+        q2_res = await c.query(q2);
+        streamer.samedayOffset = q2_res.rows.ts
+      }
       try {
         vodSender = new Sender({ bufferSize: 4096});
         await vodSender.connect({ port: 9009, host: databaseIPV4 });
@@ -85,7 +103,7 @@ async function liveListener(streamer) {
       vodSender.close();
     }
   } else {
-    // console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
+    console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
     if (streamer.live) { // if the previous state was live and the current state is not, un-initialize some variables
       sender.close();
     }
@@ -97,10 +115,10 @@ async function liveListener(streamer) {
 
 
 const streamers = [
-  {name: 'MOONMOON', id: 121059319, live: null, startTime: false, lastLiveCheck: null},
-  // {name: 'A_Seagull', id: 19070311, live: null, startTime: false, lastLiveCheck: null},
-  // {name: 'HisWattson', id: 123182260, live: null, startTime: false, lastLiveCheck: null},
-  // {name: 'meactually', id: 92639761, live: false, startTime: null, lastLiveCheck: null}, 
+  {name: 'MOONMOON', id: 121059319, live: null, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: null, lastLiveCheck: null},
+  // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: null, lastLiveCheck: null},
+  // {name: 'HisWattson', id: 123182260, live: null, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: null, lastLiveCheck: null},
+  // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: null, lastLiveCheck: null}, 
 ];
 const chatListeners = [];
 for (let i = 0; i < streamers.length; i++) {
@@ -146,6 +164,7 @@ const insertion = async () => {
         diff = diff % 60;
         ttime.setSeconds(diff);
         ttime.setMilliseconds(000);
+        ttime = new Date(ttime + streamers[roomIndex].samedayOffset);
         ttime = ttime.getTime() + '000000';
         try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
           c += 1;
@@ -159,7 +178,7 @@ const insertion = async () => {
       }
 
     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
-      // console.log(`sending from ${channel} @`, new Date());
+      console.log(`sending from ${channel} @`, new Date(ttime));
       c = 0;
       // sender.reset();  // comment this for testing to not send any data to the database
       await sender.flush();
@@ -172,14 +191,14 @@ insertion().catch(console.error);
 // "use strict"
 
 
-const pool = new Pool({
-  database: "chatters",
-  host: databaseIPV4,
-  password: "quest",
-  port: 8812,
-  user: "admin",
-  max: 20,
-})
+// const pool = new Pool({
+//   database: "chatters",
+//   host: databaseIPV4,
+//   password: "quest",
+//   port: 8812,
+//   user: "admin",
+//   max: 20,
+// })
 const start = async () => {
   app.get("/auth", (req, res) => {
     res.json('authenticated');
@@ -192,7 +211,7 @@ const start = async () => {
     const eresp = [];
     var labels = [];
     let query_res;
-    console.log('querying for sampling rate');
+    // console.log('querying for sampling rate');
     rate = 240;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
     const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/${rate} AS string)
                         FROM 'chatters' WHERE ts IN '${date_i}';`
@@ -257,6 +276,7 @@ const start = async () => {
 
 
   app.post("/dates", async (req, res) => {
+    // console.log('here');
     const c = await pool.connect();
     const uniqueDates = await c.query('SELECT DISTINCT * FROM vod_link;');
     const max_res = await c.query('SELECT stream_date FROM vod_link ORDER BY stream_date DESC LIMIT 1;');
