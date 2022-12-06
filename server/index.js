@@ -98,9 +98,9 @@ async function liveListener(streamer) {
         .stringColumn('vid_no', vod_id)
         .stringColumn('stream_date', d)
         .atNow();
-      // vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
+      vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
       await vodSender.flush();  // comment this for the production version
-      vodSender.close();
+      // vodSender.close();
     }
   } else {
     console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
@@ -115,10 +115,10 @@ async function liveListener(streamer) {
 
 
 const streamers = [
-  {name: 'MOONMOON', id: 121059319, live: null, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: null, lastLiveCheck: null},
-  // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: null, lastLiveCheck: null},
-  // {name: 'HisWattson', id: 123182260, live: null, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: null, lastLiveCheck: null},
-  // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: null, lastLiveCheck: null}, 
+  {name: 'MOONMOON', id: 121059319, live: null, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null},
+  // {name: 'A_Seagull', id: 19070311, live: null, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null},
+  // {name: 'HisWattson', id: 123182260, live: null, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
+  // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null}, 
 ];
 const chatListeners = [];
 for (let i = 0; i < streamers.length; i++) {
@@ -178,7 +178,7 @@ const insertion = async () => {
       }
 
     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
-      console.log(`sending from ${channel} @`, new Date(ttime));
+      // console.log(`sending from ${channel} @`, new Date(ttime));
       c = 0;
       // sender.reset();  // comment this for testing to not send any data to the database
       await sender.flush();
