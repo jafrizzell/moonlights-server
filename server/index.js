@@ -63,8 +63,7 @@ async function liveListener(streamer) {
     if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
       streamer.live = true;  // set the stream state to live
       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
-      // startTime = vods.data[0].creationDate;  // get the start time of the vod
-      startTime = new Date(vods.data[0].creationDate);
+      startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
       if (new Date - startTime > 90000) {  // Sometimes the twitch vod won't appear quickly
         // This causes the stream to be "live", but the code will pull the previous stream vod as the start time 
         // In this case, we assume that the stream went live 90 seconds ago
@@ -76,7 +75,6 @@ async function liveListener(streamer) {
       const c = await pool.connect();
       q = `SELECT * FROM vod_link ORDER BY stream_date DESC LIMIT 1`;
       query_res = await c.query(q);
-      console.log(query_res)
       try {
         sender = new Sender({bufferSize: 4096});
         await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
@@ -107,6 +105,7 @@ async function liveListener(streamer) {
     if (streamer.live) { // if the previous state was live and the current state is not, un-initialize some variables
       sender.close();
     }
+    streamer.samedayOffset = 0
     streamer.live = false;
     streamer.startTime = null;
   }
