@@ -68,7 +68,7 @@ async function liveListener(streamer) {
         // This causes the stream to be "live", but the code will pull the previous stream vod as the start time 
         // In this case, we assume that the stream went live 90 seconds ago
         startTime = new Date(new Date() - 90000);
-        console.log("I had to correct the start time.");
+        console.log(`I had to correct the start time to ${startTime} CST.`);
       }
       streamer.startTime = startTime;
       streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
@@ -96,9 +96,9 @@ async function liveListener(streamer) {
         .stringColumn('vid_no', vod_id)
         .stringColumn('stream_date', d)
         .atNow();
-      vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
+      // vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
       await vodSender.flush();  // comment this for the production version
-      // vodSender.close();
+      vodSender.close();
     }
   } else {
     console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
