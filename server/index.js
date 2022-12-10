@@ -158,6 +158,7 @@ const insertion = async () => {
         ttime.setHours(ttime.getHours() - tz);
         msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
         msgTime.setHours(msgTime.getHours() - tz);
+        msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
         diff = (msgTime - ttime) / 1000;
         ttime.setHours(~~(diff/3600) - tz);
         diff = diff % 3600;
