@@ -127,7 +127,7 @@ for (let i = 0; i < streamers.length; i++) {
 };
 
 const app = express();
-var options = { origin: 'https://twitchlights.com' };  // For production deployment
+var options = { origin: 'https://twitchlights.com:3000' };  // For production deployment
 // var options = { origin: 'http://localhost:3000' };  // For local testing
 app.use(express.json());
 app.use(cors(options));
