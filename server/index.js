@@ -321,8 +321,8 @@ https
     {
       // key: fs.readFileSync("key.pem"),
       // cert: fs.readFileSync("cert.pem"),
-      key: fs.readFileSync("~./etc/letsencrypt/live/twitchlights.com/privkey.pem"),
-      cert: fs.readFileSync("~./etc/letsencrypt/live/twitchlights.com/cert.pem"),
+      key: fs.readFileSync("~/etc/letsencrypt/live/twitchlights.com/privkey.pem"),
+      cert: fs.readFileSync("~/etc/letsencrypt/live/twitchlights.com/cert.pem"),
     },
     app)
   .listen(PORT, () => {
