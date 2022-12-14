@@ -127,7 +127,7 @@ for (let i = 0; i < streamers.length; i++) {
 };
 
 const app = express();
-var options = { origin: 'https://twitchlights.com:3000' };  // For production deployment
+var options = { origin: 'http://twitchlights.com:3000' };  // For production deployment
 // var options = { origin: 'http://localhost:3000' };  // For local testing
 app.use(express.json());
 app.use(cors(options));
@@ -316,18 +316,18 @@ const start = async () => {
 start().catch(console.error());
 
 // un-comment this for deployment
-// https
-//   .createServer(
-//     {
-//       key: fs.readFileSync("key.pem"),
-//       cert: fs.readFileSync("cert.pem"),
-//     },
-//     app)
-//   .listen(PORT, () => {
-//     console.log(`Server listening on ${PORT}`);  
-//   })
+https
+  .createServer(
+    {
+      key: fs.readFileSync("key.pem"),
+      cert: fs.readFileSync("cert.pem"),
+    },
+    app)
+  .listen(PORT, () => {
+    console.log(`Server listening on ${PORT}`);  
+  })
 
 // un-comment this for testing
-app.listen(PORT, () => {
-  console.log(`Server listening on ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server listening on ${PORT}`);
+// });
