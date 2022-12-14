@@ -127,7 +127,7 @@ for (let i = 0; i < streamers.length; i++) {
 };
 
 const app = express();
-var options = { origin: 'http://twitchlights.com:3000' };  // For production deployment
+var options = { origin: 'https://twitchlights.com:3000' };  // For production deployment
 // var options = { origin: 'http://localhost:3000' };  // For local testing
 app.use(express.json());
 app.use(cors(options));
@@ -319,8 +319,10 @@ start().catch(console.error());
 https
   .createServer(
     {
-      key: fs.readFileSync("key.pem"),
-      cert: fs.readFileSync("cert.pem"),
+      // key: fs.readFileSync("key.pem"),
+      // cert: fs.readFileSync("cert.pem"),
+      key: fs.readFileSync("~./etc/letsencrypt/live/twitchlights.com/privkey.pem"),
+      cert: fs.readFileSync("~./etc/letsencrypt/live/twitchlights.com/cert.pem"),
     },
     app)
   .listen(PORT, () => {
