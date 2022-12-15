@@ -59,17 +59,17 @@ async function liveListener(streamer) {
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
   await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
   if (stream !== null) {
-    console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
+    // console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
     if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
       streamer.live = true;  // set the stream state to live
       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
       startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
       if (new Date - startTime > 90000) {  // Sometimes the twitch vod won't appear quickly
-        console.log(`current (or previous) start time is ${startTime}`)
+        // console.log(`current (or previous) start time is ${startTime}`)
         // This causes the stream to be "live", but the code will pull the previous stream vod as the start time 
         // In this case, we assume that the stream went live 90 seconds ago
         startTime = new Date(new Date() - 90000);
-        console.log(`I had to correct the start time to ${startTime} CST.`);
+        // console.log(`I had to correct the start time to ${startTime} CST.`);
       }
       streamer.startTime = startTime;
       streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
@@ -103,7 +103,7 @@ async function liveListener(streamer) {
       await vodSender.close();
     }
   } else {
-    console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
+    // console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
     if (streamer.live) { // if the previous state was live and the current state is not, un-initialize some variables
       sender.close();
     }
@@ -278,7 +278,6 @@ const start = async () => {
 
 
   app.post("/dates", async (req, res) => {
-    // console.log('here');
     const c = await pool.connect();
     const uniqueDates = await c.query('SELECT DISTINCT * FROM vod_link;');
     const max_res = await c.query('SELECT stream_date FROM vod_link ORDER BY stream_date DESC LIMIT 1;');
