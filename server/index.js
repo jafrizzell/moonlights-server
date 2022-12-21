@@ -281,6 +281,7 @@ const start = async () => {
 
   app.post("/dates", async (req, res) => {
     const c = await pool.connect();
+    console.log(req.body.username);
     const uniqueDates = await c.query(`SELECT DISTINCT * FROM vod_link WHERE stream_name = '${req.body.username}';`);
     const max_res = await c.query(`SELECT stream_date FROM vod_link WHERE stream_name = '${req.body.username}' ORDER BY stream_date DESC LIMIT 1;`);
     c.release();
@@ -309,7 +310,7 @@ const start = async () => {
     res.json({topEmotes: topEmotes});
     ;
   });
-  
+
   app.get("/names", (req, res) => {
     res.json({names: chatListeners})
   })
