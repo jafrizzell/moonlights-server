@@ -287,7 +287,7 @@ const start = async () => {
     let lstream;
     let live;
 
-    await apiClient.streams.getStreamByUserName(req.body.username).then((s) => lstream = s);
+    await apiClient.streams.getStreamByUserName(req.body.username.slice(1)).then((s) => lstream = s);
     if (lstream !== null) {
       live = true;
     } else {
