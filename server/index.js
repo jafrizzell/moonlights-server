@@ -218,7 +218,7 @@ const start = async () => {
     // console.log('querying for sampling rate');
     rate = 240;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
     const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/${rate} AS string)
-                        FROM 'chatters' WHERE ts IN '${date_i}';`
+                        FROM 'chatters' WHERE stream_name='${req.body.username}' AND ts IN '${date_i}';`
     const spacing = await c.query(sampling_q);
     if (spacing.rows[0].cast < 1) {
       spacing.rows[0].cast = 1;
@@ -281,7 +281,6 @@ const start = async () => {
 
   app.post("/dates", async (req, res) => {
     const c = await pool.connect();
-    console.log(req.body.username);
     const uniqueDates = await c.query(`SELECT DISTINCT * FROM vod_link WHERE stream_name = '${req.body.username}';`);
     const max_res = await c.query(`SELECT stream_date FROM vod_link WHERE stream_name = '${req.body.username}' ORDER BY stream_date DESC LIMIT 1;`);
     c.release();
