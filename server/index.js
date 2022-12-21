@@ -97,6 +97,7 @@ async function liveListener(streamer) {
         .table('vod_link')
         .stringColumn('vid_no', vod_id)
         .stringColumn('stream_date', d)
+        .stringColumn('stream_name', streamer.name)
         .atNow();
       // vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
       await vodSender.flush();  // comment this for the production version
@@ -228,11 +229,11 @@ const start = async () => {
       if (emote_i === 'All Chat Messages') {
         emote_i = 'All Chat Messages'
         q = `(SELECT ts, count() c FROM 'chatters'
-        WHERE ts in ${SqlString.escape(date_i)} AND stream_name='#moonmoon' SAMPLE BY ${sampling} FILL(LINEAR))`;
+        WHERE ts in ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(LINEAR))`;
       } else {
         q = `(SELECT ts, count() c FROM 'chatters' 
         WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")} 
-        AND ts IN ${SqlString.escape(date_i)} AND stream_name='#moonmoon' SAMPLE BY ${sampling} FILL(LINEAR))`;
+        AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(LINEAR))`;
       }
       query_res = await c.query(q);
       var colors = palette('mpn65', req.body.emote.length);
@@ -280,8 +281,8 @@ const start = async () => {
 
   app.post("/dates", async (req, res) => {
     const c = await pool.connect();
-    const uniqueDates = await c.query('SELECT DISTINCT * FROM vod_link;');
-    const max_res = await c.query('SELECT stream_date FROM vod_link ORDER BY stream_date DESC LIMIT 1;');
+    const uniqueDates = await c.query(`SELECT DISTINCT * FROM vod_link WHERE stream_name = '${req.body.username}';`);
+    const max_res = await c.query(`SELECT stream_date FROM vod_link WHERE stream_name = '${req.body.username}' ORDER BY stream_date DESC LIMIT 1;`);
     c.release();
     let lstream;
     let live;
@@ -298,7 +299,7 @@ const start = async () => {
 
   app.post("/topEmotes", async (req, res) => {
     const c = await pool.connect();
-    q = `SELECT DISTINCT message, count() c FROM 'chatters' WHERE ts IN ${SqlString.escape(req.body.date)} ORDER BY c DESC LIMIT 100;`
+    q = `SELECT DISTINCT message, count() c FROM 'chatters' WHERE stream_name = '${req.body.username}' AND ts IN ${SqlString.escape(req.body.date)} ORDER BY c DESC LIMIT 100;`
     const query_res = await c.query(q);
     const topEmotes = []
     for (let i = 0; i < query_res.rows.length; i++) {
@@ -308,6 +309,10 @@ const start = async () => {
     res.json({topEmotes: topEmotes});
     ;
   });
+  
+  app.get("/names", (req, res) => {
+    res.json({names: chatListeners})
+  })
 
   app.get("/dev", (req, res) => {
     res.json({response: "Im here!"})
