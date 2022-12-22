@@ -97,7 +97,7 @@ async function liveListener(streamer) {
         .table('vod_link')
         .stringColumn('vid_no', vod_id)
         .stringColumn('stream_date', d)
-        .stringColumn('stream_name', '#'.concat(streamer.name))
+        .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
         .atNow();
       // vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
       await vodSender.flush();  // comment this for the production version
