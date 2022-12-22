@@ -177,7 +177,7 @@ const insertion = async () => {
             .stringColumn('message', message)
             .symbol('stream_name', channel)
             .at(ttime);
-        } catch { }
+        } catch { console.log('error encountered when sending to the chatters table')}
         }
       }
 
