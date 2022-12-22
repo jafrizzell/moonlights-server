@@ -175,7 +175,7 @@ const insertion = async () => {
             .table('chatters')
             .stringColumn('username', tags['display-name'])
             .stringColumn('message', message)
-            .symbolColumn('stream_name', channel)
+            .symbol('stream_name', `${channel}`)
             .at(ttime);
         } catch { console.log('error encountered when sending to the chatters table')}
         }
