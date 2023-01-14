@@ -99,8 +99,8 @@ async function liveListener(streamer) {
         .stringColumn('stream_date', d)
         .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
         .atNow();
-      vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
-      // await vodSender.flush();  // comment this for the production version
+      // vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
+      await vodSender.flush();  // comment this for the production version
       await vodSender.close();
     }
   } else {
@@ -128,8 +128,8 @@ for (let i = 0; i < streamers.length; i++) {
 };
 
 const app = express();
-// var options = { origin: 'https://twitchlights.com' };  // For production deployment
-var options = { origin: 'http://localhost:3000' };  // For local testing
+var options = { origin: 'https://twitchlights.com' };  // For production deployment
+// var options = { origin: 'http://localhost:3000' };  // For local testing
 app.use(express.json());
 app.use(cors(options));
 app.options('*', cors(options));
@@ -184,8 +184,8 @@ const insertion = async () => {
     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
       // console.log(`sending from ${channel} @`, new Date(ttime));
       c = 0;
-      sender.reset();  // comment this for testing to not send any data to the database
-      // await sender.flush();
+      // sender.reset();  // comment this for testing to not send any data to the database
+      await sender.flush();
     };
   });
 };
@@ -330,20 +330,20 @@ const start = async () => {
 start().catch(console.error());
 
 // un-comment this for deployment
-// https
-//   .createServer(
-//     {
-//       // key: fs.readFileSync("key.pem"),
-//       // cert: fs.readFileSync("cert.pem"),
-//       key: fs.readFileSync("/etc/letsencrypt/live/twitchlights.com/privkey.pem"),
-//       cert: fs.readFileSync("/etc/letsencrypt/live/twitchlights.com/cert.pem"),
-//     },
-//     app)
-//   .listen(PORT, () => {
-//     console.log(`Server listening on ${PORT}`);  
-//   })
+https
+  .createServer(
+    {
+      // key: fs.readFileSync("key.pem"),
+      // cert: fs.readFileSync("cert.pem"),
+      key: fs.readFileSync("/etc/letsencrypt/live/twitchlights.com/privkey.pem"),
+      cert: fs.readFileSync("/etc/letsencrypt/live/twitchlights.com/cert.pem"),
+    },
+    app)
+  .listen(PORT, () => {
+    console.log(`Server listening on ${PORT}`);  
+  })
 
 // un-comment this for testing
-app.listen(PORT, () => {
-  console.log(`Server listening on ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server listening on ${PORT}`);
+// });
