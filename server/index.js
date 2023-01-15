@@ -215,13 +215,11 @@ const start = async () => {
     const eresp = [];
     var labels = req.body.labels;
     var validColors = req.body.openColors;
-    console.log(validColors)
     var allcolors = palette('mpn65', 10);
     var colors = [];
     for (let i=0; i < validColors.length; i++) {
       colors.push(allcolors[validColors[i]]);
     }
-    console.log(colors);
     let query_res;
     // console.log('querying for sampling rate');
     rate = 240;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
@@ -237,11 +235,14 @@ const start = async () => {
       if (emote_i === 'All Chat Messages') {
         emote_i = 'All Chat Messages'
         q = `(SELECT ts, count() c FROM 'chatters'
-        WHERE ts in ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(LINEAR))`;
+        WHERE ts in ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(1))`;
       } else {
         q = `(SELECT ts, count() c FROM 'chatters' 
-        WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")} 
-        AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(LINEAR))`;
+              WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")} 
+              AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0))`;
+        // q = `SELECT ts, sum(round_up((length(message) - length(regexp_replace(message, '(?i)${emote_i}', '')))/length('${emote_i}'), 0)) c FROM 'chatters'
+        //     WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")}
+        //     AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0);`
       }
       query_res = await c.query(q);
 
@@ -312,7 +313,18 @@ const start = async () => {
     const query_res = await c.query(q);
     const topEmotes = []
     for (let i = 0; i < query_res.rows.length; i++) {
-      topEmotes.push(query_res.rows[i].message)
+      if (query_res.rows[i].message.split(" ").length > 1) {
+        var split_msg = query_res.rows[i].message.split(" ");
+        for (let j = 0; j < Math.ceil(split_msg.length / 2); j++) {
+          if (split_msg.slice(0, j+1).toString() == split_msg.slice(j+1, 2*(j+1)).toString()) {
+            query_res.rows[i].message = split_msg.slice(0, j+1).join(' ');
+            break;
+          }
+        }
+      }
+      if (!topEmotes.includes(query_res.rows[i].message.trim())) {
+        topEmotes.push(query_res.rows[i].message);
+      }
     }
     c.release();
     res.json({topEmotes: topEmotes});
