@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 6969;
 const tmi = require('tmi.js');
 
 
-const TESTING = false;
+const TESTING = true;
 
 const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -53,20 +53,31 @@ async function liveListener(streamer) {
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
   await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
   if (stream !== null) {
-    if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
-      streamer.live = true;  // set the stream state to live
+    if (streamer.live != 'true') {  // if the previous status was not live and the current status is live, initiate some variables
+
+      streamer.live = 'true';  // set the stream state to live
       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
       startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
-      if (new Date - startTime > 90000) {  // Sometimes the twitch vod won't appear quickly
-        // This causes the stream to be "live", but the code will pull the previous stream vod as the start time 
-        // In this case, we assume that the stream went live 90 seconds ago
-        startTime = new Date(new Date() - 90000);
-      }
-      streamer.startTime = startTime;
-      streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
+
       const c = await pool.connect();
       q = `SELECT * FROM vod_link ORDER BY stream_date DESC LIMIT 1`;
       query_res = await c.query(q);
+
+      if (query_res.rows.vid_no == vods.data[0].id) {  
+        
+        // Sometimes the twitch vod won't appear quickly
+        // This causes the stream to be "live", but the code will pull the previous stream vod_id 
+        
+        // To solve this, we define a new state "pending"
+        // In theory, this will allow us to add messages to the database for the live stream,
+        // and wait for the proper vod_id to appear on twitch to add into the database.
+        // To allow messages into the database, we assume the start time was 12 seconds ago
+        streamer.live = 'pending';
+
+        startTime = new Date(new Date() - 12000);
+      }
+      streamer.startTime = startTime;
+      streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
       try {
         sender = new Sender({bufferSize: 4096});
         await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
@@ -91,19 +102,23 @@ async function liveListener(streamer) {
         .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
         .atNow();
       if (TESTING) {
-        vodSender.reset();  // When testing, don't send data to the database
+        if (streamer.live === 'true') {
+            vodSender.reset();  // When testing, don't send data to the database
+        }
       }
       else {
-        await vodSender.flush();  // Send the data to the database
+        if (streamer.live === 'true') {
+            await vodSender.flush();  // Send the data to the database
+        }
       }
       await vodSender.close();
     }
   } else {
-    if (streamer.live) { // if the previous state was live and the current state is not, un-initialize some variables
+    if (streamer.live == 'true') { // if the previous state was live and the current state is not, un-initialize some variables
       sender.close();
     }
     streamer.samedayOffset = 0
-    streamer.live = false;
+    streamer.live = 'false';
     streamer.startTime = null;
   }
 
@@ -134,11 +149,11 @@ const insertion = async () => {
   
     chatClient.on('message', async (channel, tags, message, self) => {
       roomIndex = chatListeners.indexOf(channel);
-      // check live status every 30000 ms (30 seconds)
-      if (new Date() - streamers[roomIndex].lastLiveCheck > 30000) {
+      // check live status every 3000 ms (3 seconds)
+      if (new Date() - streamers[roomIndex].lastLiveCheck > 3000) {
         await liveListener(streamers[roomIndex]);
       };
-      if (streamers[roomIndex].live) {
+      if (streamers[roomIndex].live != 'false') {
   
         if (streamers[roomIndex].startTime !== null) {
           ttime = new Date(streamers[roomIndex].startTime);
