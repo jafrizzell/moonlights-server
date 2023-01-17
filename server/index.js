@@ -259,9 +259,9 @@ const start = async () => {
         }
       );
       for (let r=0; r < query_res.rows.length; r++) {
-        d = query_res.rows[r]['ts']
-        d.setHours(d.getHours());
-        d.setSeconds(0);
+        d = query_res.rows[r]['ts'];
+        // d.setHours(d.getHours());
+        // d.setSeconds(0);
         function fixTime(i) {
           if (i < 10) {
             i = '0' + i;
