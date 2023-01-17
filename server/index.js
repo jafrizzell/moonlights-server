@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 6969;
 const tmi = require('tmi.js');
 
 
-const TESTING = true;
+const TESTING = false;
 
 const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
