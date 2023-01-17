@@ -13,18 +13,21 @@ const credentials = require('../secrets/secrets.js');
 const PORT = process.env.PORT || 6969;
 const tmi = require('tmi.js');
 
+
+const TESTING = false;
+
 const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
 const tz = new Date().getTimezoneOffset() / 60;
 
-const pool = new Pool({
-  database: "chatters",
-  host: databaseIPV4,
-  password: "quest",
-  port: 8812,
-  user: "admin",
-  max: 20,
-})
+// const pool = new Pool({
+//   database: "chatters",
+//   host: databaseIPV4,
+//   password: "quest",
+//   port: 8812,
+//   user: "admin",
+//   max: 20,
+// })
 
 const Url = "https://id.twitch.tv/oauth2/token"
 const Data = {
@@ -49,71 +52,75 @@ const apiClient = new ApiClient({ authProvider });
 
 // const sender = new Sender({ bufferSize: 4096 });
 // const vodSender = new Sender({ bufferSize: 4096});  // create and connect a sender for the vod_link table
-let sender;
-let vodSender;
+// let sender;
+// let vodSender;
 
 
-async function liveListener(streamer) {
-  let stream;
-  let vods;
-  streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
-  await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
-  if (stream !== null) {
-    // console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
-    if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
-      streamer.live = true;  // set the stream state to live
-      await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
-      startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
-      if (new Date - startTime > 90000) {  // Sometimes the twitch vod won't appear quickly
-        // console.log(`current (or previous) start time is ${startTime}`)
-        // This causes the stream to be "live", but the code will pull the previous stream vod as the start time 
-        // In this case, we assume that the stream went live 90 seconds ago
-        startTime = new Date(new Date() - 90000);
-        // console.log(`I had to correct the start time to ${startTime} CST.`);
-      }
-      streamer.startTime = startTime;
-      streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
-      const c = await pool.connect();
-      q = `SELECT * FROM vod_link ORDER BY stream_date DESC LIMIT 1`;
-      query_res = await c.query(q);
-      try {
-        sender = new Sender({bufferSize: 4096});
-        await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
-      } catch { }
+// async function liveListener(streamer) {
+//   let stream;
+//   let vods;
+//   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
+//   await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
+//   if (stream !== null) {
+//     // console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
+//     if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
+//       streamer.live = true;  // set the stream state to live
+//       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
+//       startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
+//       if (new Date - startTime > 90000) {  // Sometimes the twitch vod won't appear quickly
+//         // console.log(`current (or previous) start time is ${startTime}`)
+//         // This causes the stream to be "live", but the code will pull the previous stream vod as the start time 
+//         // In this case, we assume that the stream went live 90 seconds ago
+//         startTime = new Date(new Date() - 90000);
+//         // console.log(`I had to correct the start time to ${startTime} CST.`);
+//       }
+//       streamer.startTime = startTime;
+//       streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
+//       const c = await pool.connect();
+//       q = `SELECT * FROM vod_link ORDER BY stream_date DESC LIMIT 1`;
+//       query_res = await c.query(q);
+//       try {
+//         sender = new Sender({bufferSize: 4096});
+//         await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
+//       } catch { }
 
-      vod_id = vods.data[0].id;
-      d = new Date(streamer.streamerLocalTime).toISOString().split('T')[0];
-      if (d === query_res.rows.stream_date) {
-        q2 = `SELECT * FROM chatters ORDER BY ts DESC LIMIT 1`;
-        q2_res = await c.query(q2);
-        streamer.samedayOffset = q2_res.rows.ts
-      }
-      c.release();
-      try {
-        vodSender = new Sender({ bufferSize: 4096});
-        await vodSender.connect({ port: 9009, host: databaseIPV4 });
-      } catch {}
-      vodSender
-        .table('vod_link')
-        .stringColumn('vid_no', vod_id)
-        .stringColumn('stream_date', d)
-        .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
-        .atNow();
-      // vodSender.reset()  // comment this for testing to prevent anything from being sent to the database
-      await vodSender.flush();  // comment this for the production version
-      await vodSender.close();
-    }
-  } else {
-    // console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
-    if (streamer.live) { // if the previous state was live and the current state is not, un-initialize some variables
-      sender.close();
-    }
-    streamer.samedayOffset = 0
-    streamer.live = false;
-    streamer.startTime = null;
-  }
+//       vod_id = vods.data[0].id;
+//       d = new Date(streamer.streamerLocalTime).toISOString().split('T')[0];
+//       if (d === query_res.rows.stream_date) {
+//         q2 = `SELECT * FROM chatters ORDER BY ts DESC LIMIT 1`;
+//         q2_res = await c.query(q2);
+//         streamer.samedayOffset = q2_res.rows.ts
+//       }
+//       c.release();
+//       try {
+//         vodSender = new Sender({ bufferSize: 4096});
+//         await vodSender.connect({ port: 9009, host: databaseIPV4 });
+//       } catch {}
+//       vodSender
+//         .table('vod_link')
+//         .stringColumn('vid_no', vod_id)
+//         .stringColumn('stream_date', d)
+//         .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
+//         .atNow();
+//       if (TESTING) {
+//         vodSender.reset();  // When testing, don't send data to the database
+//       }
+//       else {
+//         await vodSender.flush();  // Send the data to the database
+//       }
+//       await vodSender.close();
+//     }
+//   } else {
+//     // console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
+//     if (streamer.live) { // if the previous state was live and the current state is not, un-initialize some variables
+//       sender.close();
+//     }
+//     streamer.samedayOffset = 0
+//     streamer.live = false;
+//     streamer.startTime = null;
+//   }
 
-};
+// };
 
 
 const streamers = [
@@ -128,81 +135,86 @@ for (let i = 0; i < streamers.length; i++) {
 };
 
 const app = express();
-var options = { origin: 'https://twitchlights.com' };  // For production deployment
-// var options = { origin: 'http://localhost:3000' };  // For local testing
+if (TESTING) {
+  var options = { origin: 'http://localhost:3000' };  // For local testing
+}
+else {
+  var options = { origin: 'https://twitchlights.com' };  // For production deployment
+};
 app.use(express.json());
 app.use(cors(options));
 app.options('*', cors(options));
 app.use(bodyParser.urlencoded({extended: false}));
 
 
-const insertion = async () => {
-  const chatClient = new tmi.Client({
-    channels: chatListeners
-  });
+// const insertion = async () => {
+//   const chatClient = new tmi.Client({
+//     channels: chatListeners
+//   });
 
-  await chatClient.connect();
-  var c = 0;
-  let msgTime;
-  let diff;
+//   await chatClient.connect();
+//   var c = 0;
+//   let msgTime;
+//   let diff;
 
-  chatClient.on('message', async (channel, tags, message, self) => {
-    roomIndex = chatListeners.indexOf(channel);
-    // check live status every 30000 ms (30 seconds)
-    if (new Date() - streamers[roomIndex].lastLiveCheck > 30000) {
-      await liveListener(streamers[roomIndex]);
-    };
-    if (streamers[roomIndex].live) {
+//   chatClient.on('message', async (channel, tags, message, self) => {
+//     roomIndex = chatListeners.indexOf(channel);
+//     // check live status every 30000 ms (30 seconds)
+//     if (new Date() - streamers[roomIndex].lastLiveCheck > 30000) {
+//       await liveListener(streamers[roomIndex]);
+//     };
+//     if (streamers[roomIndex].live) {
 
-      if (streamers[roomIndex].startTime !== null) {
-        ttime = new Date(streamers[roomIndex].startTime);
-        ttime.setHours(ttime.getHours() - tz);
-        msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
-        msgTime.setHours(msgTime.getHours() - tz);
-        msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
-        diff = (msgTime - ttime) / 1000;
-        ttime.setHours(~~(diff/3600) - tz);
-        diff = diff % 3600;
-        ttime.setMinutes(~~(diff/60));
-        diff = diff % 60;
-        ttime.setSeconds(diff);
-        ttime.setMilliseconds(000);
-        ttime = new Date(ttime + streamers[roomIndex].samedayOffset);
-        ttime = ttime.getTime() + '000000';
-        try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
-          c += 1;
-          sender
-            .table('chatters')
-            .symbol('stream_name', channel)
-            .stringColumn('username', tags['display-name'])
-            .stringColumn('message', message)
-            .at(ttime);
-        } catch { console.log('error encountered when sending to the chatters table')}
-        }
-      }
+//       if (streamers[roomIndex].startTime !== null) {
+//         ttime = new Date(streamers[roomIndex].startTime);
+//         ttime.setHours(ttime.getHours() - tz);
+//         msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
+//         msgTime.setHours(msgTime.getHours() - tz);
+//         msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
+//         diff = (msgTime - ttime) / 1000;
+//         ttime.setHours(~~(diff/3600) - tz);
+//         diff = diff % 3600;
+//         ttime.setMinutes(~~(diff/60));
+//         diff = diff % 60;
+//         ttime.setSeconds(diff);
+//         ttime.setMilliseconds(000);
+//         ttime = new Date(ttime + streamers[roomIndex].samedayOffset);
+//         ttime = ttime.getTime() + '000000';
+//         try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
+//           c += 1;
+//           sender
+//             .table('chatters')
+//             .symbol('stream_name', channel)
+//             .stringColumn('username', tags['display-name'])
+//             .stringColumn('message', message)
+//             .at(ttime);
+//         } catch { console.log('error encountered when sending to the chatters table')}
+//         }
+//       }
 
-    if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
-      // console.log(`sending from ${channel} @`, new Date(ttime));
-      c = 0;
-      // sender.reset();  // comment this for testing to not send any data to the database
-      await sender.flush();
-    };
-  });
-};
-insertion().catch(console.error);
+//     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
+//       c = 0;
+//       if (TESTING) {
+//         sender.reset();  // When testing, don't send data to the database
+//       }
+//       else {
+//         await sender.flush();  // Send data to the database
+//       }
+//     };
+//   });
+// };
+// insertion().catch(console.error);
 
 
-// "use strict"
 
-
-// const pool = new Pool({
-//   database: "chatters",
-//   host: databaseIPV4,
-//   password: "quest",
-//   port: 8812,
-//   user: "admin",
-//   max: 20,
-// })
+const pool = new Pool({
+  database: "chatters",
+  host: databaseIPV4,
+  password: "quest",
+  port: 8812,
+  user: "admin",
+  max: 20,
+})
 const start = async () => {
   app.get("/auth", (req, res) => {
     res.json('authenticated');
@@ -221,7 +233,6 @@ const start = async () => {
       colors.push(allcolors[validColors[i]]);
     }
     let query_res;
-    // console.log('querying for sampling rate');
     rate = 240;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
     const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/${rate} AS string)
                         FROM 'chatters' WHERE stream_name='${req.body.username}' AND ts IN '${date_i}';`
@@ -290,19 +301,18 @@ const start = async () => {
 
   app.post("/dates", async (req, res) => {
     const c = await pool.connect();
-    const uniqueDates = await c.query(`SELECT DISTINCT * FROM vod_link WHERE stream_name = '${req.body.username}';`);
-    const max_res = await c.query(`SELECT stream_date FROM vod_link WHERE stream_name = '${req.body.username}' ORDER BY stream_date DESC LIMIT 1;`);
+    const uniqueDates = await c.query(`SELECT * FROM vod_link WHERE stream_name = '${req.body.username}' ORDER BY stream_date DESC;`);
     c.release();
+    const max_res = uniqueDates.rows.slice(0, 1);
     let lstream;
     let live;
-
     await apiClient.streams.getStreamByUserName(req.body.username.slice(1)).then((s) => lstream = s);
     if (lstream !== null) {
       live = true;
     } else {
       live = false;
     }
-    res.json({dates: uniqueDates.rows, maxDate: max_res.rows, live: live});
+    res.json({dates: uniqueDates.rows, maxDate: max_res, live: live});
     ;
 
 });
@@ -341,12 +351,17 @@ const start = async () => {
 }
 start().catch(console.error());
 
-// un-comment this for deployment
-https
+if (TESTING) {
+// Use HTTP protocol for local testing
+app.listen(PORT, () => {
+  console.log(`Server listening on ${PORT}`);
+});
+}
+else {
+  // Use HTTPS protocol for production
+  https
   .createServer(
     {
-      // key: fs.readFileSync("key.pem"),
-      // cert: fs.readFileSync("cert.pem"),
       key: fs.readFileSync("/etc/letsencrypt/live/twitchlights.com/privkey.pem"),
       cert: fs.readFileSync("/etc/letsencrypt/live/twitchlights.com/cert.pem"),
     },
@@ -354,8 +369,6 @@ https
   .listen(PORT, () => {
     console.log(`Server listening on ${PORT}`);  
   })
+}
 
-// un-comment this for testing
-// app.listen(PORT, () => {
-//   console.log(`Server listening on ${PORT}`);
-// });
+
