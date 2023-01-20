@@ -52,7 +52,7 @@ async function liveListener(streamer) {
   let vods;
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
   try{ await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s}); }  // fetch the current stream state of the streamer
-  catch {stream = null};
+  catch {stream = null; console.log('api call failed')};
   if (stream !== null) {
     if (streamer.live != 'true') {  // if the previous status was not live and the current status is live, initiate some variables
 
@@ -149,14 +149,22 @@ const insertion = async () => {
     var c = 0;
     let msgTime;
     let diff;
-  
+    
     chatClient.on('message', async (channel, tags, message, self) => {
-      roomIndex = chatListeners.indexOf(channel);
+      if (self) return;
+      // if (channel === '#moonmoon') {
+      //   console.log(channel, chatListeners.indexOf(channel))
+      // }
+      const roomIndex = chatListeners.indexOf(channel);
       // check live status every 5000 ms (5 seconds)
       if (new Date() - streamers[roomIndex].lastLiveCheck > 5000) {
         await liveListener(streamers[roomIndex]);
+        
       };
       if (streamers[roomIndex].live != 'false') {
+        // if (channel == '#moonmoon') {
+        //   console.log(channel, streamers[roomIndex].name, roomIndex, chatListeners.indexOf(channel))
+        // }
         if (streamers[roomIndex].startTime !== null) {
           ttime = new Date(streamers[roomIndex].startTime);
           ttime.setHours(ttime.getHours() - tz);
@@ -173,7 +181,7 @@ const insertion = async () => {
           ttime = new Date(ttime + streamers[roomIndex].samedayOffset);
           ttime = ttime.getTime() + '000000';
           try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
-            if (streamers[roomIndex].live != 'false') { 
+            if (streamers[roomIndex].live !== 'false') { 
               // For some reason, some messages will leak through the first live filter. This should 
               // hopefully catch them and prevent them from being added to the database
               c += 1;
