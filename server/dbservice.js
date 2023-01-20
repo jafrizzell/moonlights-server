@@ -157,7 +157,6 @@ const insertion = async () => {
         await liveListener(streamers[roomIndex]);
       };
       if (streamers[roomIndex].live != 'false') {
-        if (streamers[roomIndex].name === 'MOONMOON') {console.log(message)}
         if (streamers[roomIndex].startTime !== null) {
           ttime = new Date(streamers[roomIndex].startTime);
           ttime.setHours(ttime.getHours() - tz);
