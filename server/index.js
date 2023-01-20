@@ -253,7 +253,7 @@ const start = async () => {
         WHERE ts in ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0))`;
       } else {
         q = `(SELECT ts, count() c FROM 'chatters' 
-              WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")} 
+              WHERE message~${SqlString.escape("(?i)"+emote_i)} 
               AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0))`;
         // q = `SELECT ts, sum(round_up((length(message) - length(regexp_replace(message, '(?i)${emote_i}', '')))/length('${emote_i}'), 0)) c FROM 'chatters'
         //     WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")}

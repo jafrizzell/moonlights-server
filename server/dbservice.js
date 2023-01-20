@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 6969;
 const tmi = require('tmi.js');
 
 
-const TESTING = false;
+const TESTING = true;
 
 const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -51,7 +51,8 @@ async function liveListener(streamer) {
   let stream;
   let vods;
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
-  await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
+  try{ await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s}); }  // fetch the current stream state of the streamer
+  catch {stream = null};
   if (stream !== null) {
     if (streamer.live != 'true') {  // if the previous status was not live and the current status is live, initiate some variables
 
@@ -151,8 +152,8 @@ const insertion = async () => {
   
     chatClient.on('message', async (channel, tags, message, self) => {
       roomIndex = chatListeners.indexOf(channel);
-      // check live status every 3000 ms (3 seconds)
-      if (new Date() - streamers[roomIndex].lastLiveCheck > 3000) {
+      // check live status every 5000 ms (5 seconds)
+      if (new Date() - streamers[roomIndex].lastLiveCheck > 5000) {
         await liveListener(streamers[roomIndex]);
       };
       if (streamers[roomIndex].live != 'false') {
