@@ -127,8 +127,8 @@ async function liveListener(streamer) {
 
 const streamers = [
     {name: 'MOONMOON', id: 121059319, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-    {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-    {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+    // {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+    // {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
     // {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null},
     // {name: 'HisWattson', id: 123182260, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
     // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null}, 
@@ -156,6 +156,7 @@ const insertion = async () => {
         await liveListener(streamers[roomIndex]);
       };
       if (streamers[roomIndex].live != 'false') {
+        if (streamers[roomIndex].name === 'MOONMOON') {console.log(message)}
         if (streamers[roomIndex].startTime !== null) {
           ttime = new Date(streamers[roomIndex].startTime);
           ttime.setHours(ttime.getHours() - tz);
@@ -172,13 +173,17 @@ const insertion = async () => {
           ttime = new Date(ttime + streamers[roomIndex].samedayOffset);
           ttime = ttime.getTime() + '000000';
           try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
-            c += 1;
-            sender
-              .table('chatters')
-              .symbol('stream_name', channel)
-              .stringColumn('username', tags['display-name'])
-              .stringColumn('message', message)
-              .at(ttime);
+            if (streamers[roomIndex].live != 'false') { 
+              // For some reason, some messages will leak through the first live filter. This should 
+              // hopefully catch them and prevent them from being added to the database
+              c += 1;
+              sender
+                .table('chatters')
+                .symbol('stream_name', channel)
+                .stringColumn('username', tags['display-name'])
+                .stringColumn('message', message)
+                .at(ttime);
+            }
           } catch { console.log('error encountered when sending to the chatters table')}
           }
         }
