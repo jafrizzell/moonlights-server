@@ -61,7 +61,7 @@ async function liveListener(streamer) {
       startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
 
       const c = await pool.connect();
-      q = `SELECT * FROM vod_link ORDER BY stream_date DESC LIMIT 1`;
+      q = `SELECT * FROM vod_link WHERE stream_name=${streamer.name.toLowerCase()} ORDER BY stream_date DESC LIMIT 1`;
       query_res = await c.query(q);
       // console.log(query_res.rows[0].vid_no);
 
@@ -88,7 +88,7 @@ async function liveListener(streamer) {
       vod_id = vods.data[0].id;
       d = new Date(streamer.streamerLocalTime).toISOString().split('T')[0];
       if (d === query_res.rows[0].stream_date) {
-        q2 = `SELECT * FROM chatters ORDER BY ts DESC LIMIT 1`;
+        q2 = `SELECT * FROM chatters WHERE stream_name=${streamer.name.toLowerCase()} ORDER BY ts DESC LIMIT 1`;
         q2_res = await c.query(q2);
         streamer.samedayOffset = q2_res.rows[0].ts
       }
