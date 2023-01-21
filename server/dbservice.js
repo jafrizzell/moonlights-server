@@ -61,23 +61,25 @@ async function liveListener(streamer) {
       startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
 
       const c = await pool.connect();
-      q = `SELECT * FROM vod_link WHERE stream_name='${streamer.name.toLowerCase()}' ORDER BY stream_date DESC LIMIT 1`;
+      q = `SELECT * FROM vod_link WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY stream_date DESC LIMIT 1`;
       query_res = await c.query(q);
       // console.log(query_res.rows[0].vid_no);
-
-      if (query_res.rows[0].vid_no == vods.data[0].id) {  
-        
-        // Sometimes the twitch vod won't appear quickly
-        // This causes the stream to be "live", but the code will pull the previous stream vod_id 
-        
-        // To solve this, we define a new state "pending"
-        // In theory, this will allow us to add messages to the database for the live stream,
-        // and wait for the proper vod_id to appear on twitch to add into the database.
-        // To allow messages into the database, we assume the start time was 12 seconds ago
-        streamer.live = 'pending';
-
-        startTime = new Date(new Date() - 12000);
+      if (query_res.rows.length > 0) {
+        if (query_res.rows[0].vid_no == vods.data[0].id) {  
+          
+          // Sometimes the twitch vod won't appear quickly
+          // This causes the stream to be "live", but the code will pull the previous stream vod_id 
+          
+          // To solve this, we define a new state "pending"
+          // In theory, this will allow us to add messages to the database for the live stream,
+          // and wait for the proper vod_id to appear on twitch to add into the database.
+          // To allow messages into the database, we assume the start time was 12 seconds ago
+          streamer.live = 'pending';
+  
+          startTime = new Date(new Date() - 12000);
+        }
       }
+
       streamer.startTime = startTime;
       streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
       try {
@@ -87,10 +89,12 @@ async function liveListener(streamer) {
 
       vod_id = vods.data[0].id;
       d = new Date(streamer.streamerLocalTime).toISOString().split('T')[0];
-      if (d === query_res.rows[0].stream_date) {
-        q2 = `SELECT * FROM chatters WHERE stream_name='${streamer.name.toLowerCase()}' ORDER BY ts DESC LIMIT 1`;
-        q2_res = await c.query(q2);
-        streamer.samedayOffset = q2_res.rows[0].ts
+      if (query_res.rows.length > 0) {
+        if (d === query_res.rows[0].stream_date) {
+          q2 = `SELECT * FROM chatters WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY ts DESC LIMIT 1`;
+          q2_res = await c.query(q2);
+          streamer.samedayOffset = q2_res.rows[0].ts
+        }
       }
       c.release();
       try {
@@ -171,11 +175,20 @@ const insertion = async () => {
           msgTime.setHours(msgTime.getHours() - tz);
           msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
           diff = (msgTime - ttime) / 1000;
-          ttime.setHours(~~(diff/3600) - tz + streamers[roomIndex].samedayOffset.getHours());
+          ttime.setHours(~~(diff/3600) - tz)
+          try {
+            ttime.setHours(ttime.getHours() + streamers[roomIndex].samedayOffset.getHours());
+          } catch {}
           diff = diff % 3600;
-          ttime.setMinutes(~~(diff/60) + streamers[roomIndex].samedayOffset.getMinutes());
+          ttime.setMinutes(~~(diff/60));
+          try {
+            ttime.setMinutes(ttime.getMinutes() + streamers[roomIndex].samedayOffset.getMinutes());
+          } catch {}
           diff = diff % 60;
-          ttime.setSeconds(diff  + streamers[roomIndex].samedayOffset.getSeconds());
+          ttime.setSeconds(diff);
+          try {
+            ttime.setSeconds(ttime.getSeconds() + streamers[roomIndex].samedayOffset.getSeconds());
+          } catch {}
           ttime.setMilliseconds(000);
           // console.log(ttime)
           // console.log(streamers[roomIndex].samedayOffset)
