@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 6969;
 const tmi = require('tmi.js');
 
 
-const TESTING = false;
+const TESTING = true;
 
 const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -171,13 +171,16 @@ const insertion = async () => {
           msgTime.setHours(msgTime.getHours() - tz);
           msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
           diff = (msgTime - ttime) / 1000;
-          ttime.setHours(~~(diff/3600) - tz);
+          ttime.setHours(~~(diff/3600) - tz + streamers[roomIndex].samedayOffset.getHours());
           diff = diff % 3600;
-          ttime.setMinutes(~~(diff/60));
+          ttime.setMinutes(~~(diff/60) + streamers[roomIndex].samedayOffset.getMinutes());
           diff = diff % 60;
-          ttime.setSeconds(diff);
+          ttime.setSeconds(diff  + streamers[roomIndex].samedayOffset.getSeconds());
           ttime.setMilliseconds(000);
-          ttime = new Date(ttime + streamers[roomIndex].samedayOffset);
+          // console.log(ttime)
+          // console.log(streamers[roomIndex].samedayOffset)
+          
+          // ttime = new Date(ttime + streamers[roomIndex].samedayOffset);
           ttime = ttime.getTime() + '000000';
           try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
             c += 1;
