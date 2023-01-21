@@ -305,6 +305,7 @@ const start = async () => {
 
   app.post("/dates", async (req, res) => {
     const c = await pool.connect();
+    console.log(req.body.username);
     const uniqueDates = await c.query(`SELECT * FROM vod_link WHERE stream_name = '${req.body.username}' ORDER BY stream_date DESC;`);
     c.release();
     const max_res = uniqueDates.rows.slice(0, 1);

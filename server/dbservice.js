@@ -52,7 +52,7 @@ async function liveListener(streamer) {
   let vods;
   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
   try{ await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s}); }  // fetch the current stream state of the streamer
-  catch {stream = null; console.log('api call failed')};
+  catch {console.log('api call failed')};
   if (stream !== null) {
     if (streamer.live != 'true') {  // if the previous status was not live and the current status is live, initiate some variables
 
@@ -181,17 +181,13 @@ const insertion = async () => {
           ttime = new Date(ttime + streamers[roomIndex].samedayOffset);
           ttime = ttime.getTime() + '000000';
           try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
-            if (streamers[roomIndex].live !== 'false') { 
-              // For some reason, some messages will leak through the first live filter. This should 
-              // hopefully catch them and prevent them from being added to the database
-              c += 1;
-              sender
-                .table('chatters')
-                .symbol('stream_name', channel)
-                .stringColumn('username', tags['display-name'])
-                .stringColumn('message', message)
-                .at(ttime);
-            }
+            c += 1;
+            sender
+              .table('chatters')
+              .symbol('stream_name', channel)
+              .stringColumn('username', tags['display-name'])
+              .stringColumn('message', message)
+              .at(ttime);
           } catch { console.log('error encountered when sending to the chatters table')}
           }
         }
