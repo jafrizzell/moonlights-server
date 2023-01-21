@@ -216,7 +216,7 @@ const pool = new Pool({
   password: "quest",
   port: 8812,
   user: "admin",
-  max: 20,
+  max: 25,
 })
 const start = async () => {
   app.get("/auth", (req, res) => {
@@ -238,7 +238,7 @@ const start = async () => {
     let query_res;
     rate = 240;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
     const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/${rate} AS string)
-                        FROM 'chatters' WHERE stream_name='${req.body.username}' AND ts IN '${date_i}';`
+    FROM 'chatters' WHERE stream_name=${SqlString.escape(req.body.username)} AND ts IN '${date_i}';`
     const spacing = await c.query(sampling_q);
     if (spacing.rows[0].cast < 1) {
       spacing.rows[0].cast = 1;
@@ -249,17 +249,16 @@ const start = async () => {
       if (emote_i === 'All Chat Messages') {
         emote_i = 'All Chat Messages'
         q = `(SELECT ts, count() c FROM 'chatters'
-        WHERE ts in ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0))`;
+        WHERE ts in ${SqlString.escape(date_i)} AND stream_name=${SqlString.escape(req.body.username)} SAMPLE BY ${sampling} FILL(0))`;
       } else {
         q = `(SELECT ts, count() c FROM 'chatters' 
-              WHERE message~${SqlString.escape("(?i)"+emote_i)} 
-              AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0))`;
+        WHERE message~${SqlString.escape("(?i)"+emote_i)} 
+        AND ts IN ${SqlString.escape(date_i)} AND stream_name=${SqlString.escape(req.body.username)} SAMPLE BY ${sampling} FILL(0))`;
         // q = `SELECT ts, sum(round_up((length(message) - length(regexp_replace(message, '(?i)${emote_i}', '')))/length('${emote_i}'), 0)) c FROM 'chatters'
         //     WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")}
         //     AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0);`
       }
       query_res = await c.query(q);
-
       eresp.push(
         {
           label: emote_i, 
@@ -271,40 +270,39 @@ const start = async () => {
           borderWidth: 2,
           pointRadius: 2,
         }
-      );
-      for (let r=0; r < query_res.rows.length; r++) {
-        d = query_res.rows[r]['ts'];
-        // d.setHours(d.getHours());
-        // d.setSeconds(0);
-        function fixTime(i) {
-          if (i < 10) {
-            i = '0' + i;
-          };
-          return i;
-        }
-        var h = d.getHours();
-        var m = d.getMinutes();
-        var s = d.getSeconds();
-        h = fixTime(h);
-        m = fixTime(m);
-        s = fixTime(s);
-        var n = h+":"+m+":"+s;
-        eresp[i]['data'].push({x: n, y: query_res.rows[r]['c']})
-        if (!labels.includes(n)) {
-          labels.push(n);
-        }
+        );
+        for (let r=0; r < query_res.rows.length; r++) {
+          d = query_res.rows[r]['ts'];
+          // d.setHours(d.getHours());
+          // d.setSeconds(0);
+          function fixTime(i) {
+            if (i < 10) {
+              i = '0' + i;
+            };
+            return i;
+          }
+          var h = d.getHours();
+          var m = d.getMinutes();
+          var s = d.getSeconds();
+          h = fixTime(h);
+          m = fixTime(m);
+          s = fixTime(s);
+          var n = h+":"+m+":"+s;
+          eresp[i]['data'].push({x: n, y: query_res.rows[r]['c']})
+          if (!labels.includes(n)) {
+            labels.push(n);
+          }
+        };
       };
-    };
-    c.release();
-    res.json({datasets:eresp, labels:labels.sort()});
-    ;
+
+      c.release();
+      res.json({datasets:eresp, labels:labels.sort()});
 
   });
 
 
   app.post("/dates", async (req, res) => {
     const c = await pool.connect();
-    console.log(req.body.username);
     const uniqueDates = await c.query(`SELECT * FROM vod_link WHERE stream_name = '${req.body.username}' ORDER BY stream_date DESC;`);
     c.release();
     const max_res = uniqueDates.rows.slice(0, 1);
@@ -317,8 +315,6 @@ const start = async () => {
       live = false;
     }
     res.json({dates: uniqueDates.rows, maxDate: max_res, live: live});
-    ;
-
 });
 
   app.post("/topEmotes", async (req, res) => {
@@ -336,7 +332,7 @@ const start = async () => {
           }
         }
       }
-      if (!topEmotes.includes(query_res.rows[i].message.trim())) {
+      if (!topEmotes.includes(query_res.rows[i].message.trim()) && query_res.rows[i].message.length < 50) {
         topEmotes.push(query_res.rows[i].message);
       }
     }
