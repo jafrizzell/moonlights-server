@@ -63,8 +63,9 @@ async function liveListener(streamer) {
       const c = await pool.connect();
       q = `SELECT * FROM vod_link ORDER BY stream_date DESC LIMIT 1`;
       query_res = await c.query(q);
+      // console.log(query_res.rows[0].vid_no);
 
-      if (query_res.rows.vid_no == vods.data[0].id) {  
+      if (query_res.rows[0].vid_no == vods.data[0].id) {  
         
         // Sometimes the twitch vod won't appear quickly
         // This causes the stream to be "live", but the code will pull the previous stream vod_id 
@@ -86,10 +87,10 @@ async function liveListener(streamer) {
 
       vod_id = vods.data[0].id;
       d = new Date(streamer.streamerLocalTime).toISOString().split('T')[0];
-      if (d === query_res.rows.stream_date) {
+      if (d === query_res.rows[0].stream_date) {
         q2 = `SELECT * FROM chatters ORDER BY ts DESC LIMIT 1`;
         q2_res = await c.query(q2);
-        streamer.samedayOffset = q2_res.rows.ts
+        streamer.samedayOffset = q2_res.rows[0].ts
       }
       c.release();
       try {
@@ -162,7 +163,7 @@ const insertion = async () => {
         
       };
       if (streamers[roomIndex].live != 'false') {
-        console.log(channel, streamers[roomIndex].name, roomIndex, chatListeners.indexOf(channel))
+        // console.log(channel, streamers[roomIndex].name, roomIndex, chatListeners.indexOf(channel))
         if (streamers[roomIndex].startTime !== null) {
           ttime = new Date(streamers[roomIndex].startTime);
           ttime.setHours(ttime.getHours() - tz);
