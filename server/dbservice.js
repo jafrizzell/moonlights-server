@@ -214,10 +214,12 @@ const insertion = async () => {
         }
         else {
           try {
-            sender = new Sender({bufferSize: 4096});
-            await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
-          } catch { }
-          await sender.flush();  // Send data to the database
+            await sender.flush();  // Send data to the database
+            } catch {
+              sender = new Sender({bufferSize: 4096});
+              await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
+              await sender.flush();
+             }
         }
       };
     });
