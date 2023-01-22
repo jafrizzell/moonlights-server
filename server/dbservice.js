@@ -213,6 +213,10 @@ const insertion = async () => {
           sender.reset();  // When testing, don't send data to the database
         }
         else {
+          try {
+            sender = new Sender({bufferSize: 4096});
+            await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
+          } catch { }
           await sender.flush();  // Send data to the database
         }
       };
