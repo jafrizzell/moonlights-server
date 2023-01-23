@@ -14,7 +14,6 @@ const PORT = process.env.PORT || 6969;
 const tmi = require('tmi.js');
 
 
-
 const TESTING = false;
 
 const fetch = (...args) =>
@@ -129,6 +128,8 @@ const streamers = [
   {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null},
+  {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null},
+  
   // {name: 'HisWattson', id: 123182260, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
   // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null}, 
 ];
@@ -247,7 +248,7 @@ const start = async () => {
     for (let i=0; i < req.body.emote.length; i++) {
       emote_i = req.body.emote[i].label;
       // console.log(emote_i);
-      const emote_fixed = emote_i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      var emote_fixed = emote_i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       // console.log(SqlString.escape("(?i)"+emote_i));
       // console.log(SqlString.escape("(?i)"+emote_i).replace("\\\\", "\\"));
       if (emote_fixed === 'All Chat Messages') {
