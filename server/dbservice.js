@@ -59,7 +59,6 @@ async function liveListener(streamer) {
       streamer.live = 'true';  // set the stream state to live
       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
       startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
-
       const c = await pool.connect();
       q = `SELECT * FROM vod_link WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY stream_date DESC LIMIT 1`;
       query_res = await c.query(q);
@@ -81,7 +80,7 @@ async function liveListener(streamer) {
       }
 
       streamer.startTime = startTime;
-      streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
+      streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset - tz)
       try {
         sender = new Sender({bufferSize: 4096});
         await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
