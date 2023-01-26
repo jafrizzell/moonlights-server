@@ -251,18 +251,20 @@ const start = async () => {
       var emote_fixed = emote_i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       // console.log(SqlString.escape("(?i)"+emote_i));
       // console.log(SqlString.escape("(?i)"+emote_i).replace("\\\\", "\\"));
-      if (emote_fixed === 'All Chat Messages') {
+
+      if (emote_fixed === 'All Chat Messages' || emote_i === '.*') {
         emote_fixed = 'All Chat Messages'
         q = `(SELECT ts, count() c FROM 'chatters'
         WHERE ts in ${SqlString.escape(date_i)} AND stream_name=${SqlString.escape(req.body.username)} SAMPLE BY ${sampling} FILL(0))`;
       } else {
         q = `(SELECT ts, count() c FROM 'chatters' 
-        WHERE message~${SqlString.escape("(?i)"+emote_fixed).replace("\\\\", "\\")} 
+        WHERE message~${SqlString.escape("(?i)\b"+emote_fixed+"\b").replace("\\\\", "\\")} 
         AND ts IN ${SqlString.escape(date_i)} AND stream_name=${SqlString.escape(req.body.username)} SAMPLE BY ${sampling} FILL(0))`;
         // q = `SELECT ts, sum(round_up((length(message) - length(regexp_replace(message, '(?i)${emote_i}', '')))/length('${emote_i}'), 0)) c FROM 'chatters'
         //     WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")}
         //     AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0);`
       }
+      console.log(q)
       query_res = await c.query(q);
       eresp.push(
         {
