@@ -127,8 +127,8 @@ const streamers = [
   {name: 'MOONMOON', id: 121059319, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null},
-  {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null},
+  {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   
   // {name: 'HisWattson', id: 123182260, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
   // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null}, 
@@ -143,7 +143,7 @@ if (TESTING) {
   var options = { origin: 'http://localhost:3000' };  // For local testing
 }
 else {
-  var options = { origin: 'https://twitchlights.com' };  // For production deployment
+  var options = { origin: ['https://twitchlights.com', 'https://www.twitchlights.com'] };  // For production deployment
 };
 app.use(express.json());
 app.use(cors(options));
@@ -370,6 +370,8 @@ else {
   https
   .createServer(
     {
+      // key: fs.readFileSync("key.pem"),
+      // cert: fs.readFileSync("cert.pem"),
       key: fs.readFileSync("/etc/letsencrypt/live/twitchlights.com/privkey.pem"),
       cert: fs.readFileSync("/etc/letsencrypt/live/twitchlights.com/cert.pem"),
     },
