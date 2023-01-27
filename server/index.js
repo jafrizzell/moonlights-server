@@ -264,7 +264,6 @@ const start = async () => {
         //     WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")}
         //     AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0);`
       }
-      console.log(q)
       query_res = await c.query(q);
       eresp.push(
         {
