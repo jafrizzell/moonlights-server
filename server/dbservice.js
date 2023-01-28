@@ -65,7 +65,6 @@ async function liveListener(streamer) {
       // console.log(query_res.rows[0].vid_no);
       if (query_res.rows.length > 0) {
         if (query_res.rows[0].vid_no == vods.data[0].id) {  
-          
           // Sometimes the twitch vod won't appear quickly
           // This causes the stream to be "live", but the code will pull the previous stream vod_id 
           
@@ -75,7 +74,7 @@ async function liveListener(streamer) {
           // To allow messages into the database, we assume the start time was 12 seconds ago
           streamer.live = 'pending';
   
-          startTime = new Date(new Date() - 12000);
+          startTime = new Date();
         }
       }
 
@@ -134,10 +133,10 @@ const streamers = [
     {name: 'MOONMOON', id: 121059319, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
     {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60}, 
     {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-    {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null},
-    {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null},
+    {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+    {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
     // {name: 'HisWattson', id: 123182260, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
-    // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null}, 
+    // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 14}, 
   ];
   const chatListeners = [];
   for (let i = 0; i < streamers.length; i++) {
