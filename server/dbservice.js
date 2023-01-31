@@ -78,13 +78,13 @@ async function liveListener(streamer) {
         }
       }
 
-      streamer.startTime = startTime;
-      streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset - tz)
       try {
         sender = new Sender({bufferSize: 4096});
         await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
       } catch { }
-
+      streamer.startTime = startTime;
+      streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset - tz)
+      
       vod_id = vods.data[0].id;
       d = new Date(streamer.streamerLocalTime).toISOString().split('T')[0];
       if (query_res.rows.length > 0) {
@@ -95,24 +95,35 @@ async function liveListener(streamer) {
         }
       }
       c.release();
-      try {
-        vodSender = new Sender({ bufferSize: 4096});
-        await vodSender.connect({ port: 9009, host: databaseIPV4 });
-      } catch {}
-      vodSender
-        .table('vod_link')
-        .stringColumn('vid_no', vod_id)
-        .stringColumn('stream_date', d)
-        .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
-        .atNow();
       if (TESTING) {
         if (streamer.live === 'true') {
-            vodSender.reset();  // When testing, don't send data to the database
+          try {
+            vodSender = new Sender({ bufferSize: 4096});
+            await vodSender.connect({ port: 9009, host: databaseIPV4 });
+          } catch {}
+          vodSender
+            .table('vod_link')
+            .stringColumn('vid_no', vod_id)
+            .stringColumn('stream_date', d)
+            .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
+            .atNow();
+          vodSender.reset();  // When testing, don't send data to the database
         }
       }
       else {
         if (streamer.live === 'true') {
-            await vodSender.flush();  // Send the data to the database
+          try {
+            vodSender = new Sender({ bufferSize: 4096});
+            await vodSender.connect({ port: 9009, host: databaseIPV4 });
+          } catch {}
+          vodSender
+            .table('vod_link')
+            .stringColumn('vid_no', vod_id)
+            .stringColumn('stream_date', d)
+            .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
+            .atNow();
+
+          await vodSender.flush();  // Send the data to the database
         }
       }
       await vodSender.close();
