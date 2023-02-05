@@ -127,6 +127,7 @@ const streamers = [
   {name: 'MOONMOON', id: 121059319, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'DougDougW', id: 31507411, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   
@@ -257,6 +258,7 @@ const start = async () => {
         q = `(SELECT ts, count() c FROM 'chatters'
         WHERE ts in ${SqlString.escape(date_i)} AND stream_name=${SqlString.escape(req.body.username)} SAMPLE BY ${sampling} FILL(0))`;
       } else {
+        
         q = `(SELECT ts, count() c FROM 'chatters' 
         WHERE message~${SqlString.escape("(?i)\b"+emote_fixed+"\b").replace("\\\\", "\\")} 
         AND ts IN ${SqlString.escape(date_i)} AND stream_name=${SqlString.escape(req.body.username)} SAMPLE BY ${sampling} FILL(0))`;
@@ -314,7 +316,15 @@ const start = async () => {
     const max_res = uniqueDates.rows.slice(0, 1);
     let lstream;
     let live;
+    let clips;
+    let temp;
     await apiClient.streams.getStreamByUserName(req.body.username.slice(1)).then((s) => lstream = s);
+    await apiClient.videos.getVideoById(1724443955).then((v) => temp = v);
+    // console.log(temp.creationDate)
+    await apiClient.clips.getClipsForBroadcaster(121059319, {startDate: new Date('2023-01-31T00:00:00'), endDate: new Date('2023-01-31T23:59:59'), limit: 100}).then((c) => clips = c.data);
+    // for (let i=0; i < clips.length; i++) {
+    //   console.log(clips[i].creationDate, clips[i].videoId, clips[i].vodOffset, clips[i].url)
+    // }
     if (lstream !== null) {
       live = true;
     } else {
