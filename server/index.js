@@ -124,13 +124,13 @@ const apiClient = new ApiClient({ authProvider });
 
 
 const streamers = [
-  {name: 'MOONMOON', id: 121059319, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  // {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  {name: 'DougDougW', id: 31507411, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'MOONMOON', id: 121059319, accentColor: '#54538C', textColor: '#EAEEF2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'nyanners', id: 82350088, accentColor: '#ebbfce', textColor: '#000000', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'A_Seagull', id: 19070311, accentColor: '#5bdde1', textColor: '#000000', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'GEEGA', id: 36973271, accentColor: '#a4b6c4',  textColor: '#000000', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   
+  // {name: 'DougDougW', id: 31507411, accentColor: '#d64a0d', textColor: '#EAEEF2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  // {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'HisWattson', id: 123182260, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
   // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null}, 
 ];
@@ -238,35 +238,39 @@ const start = async () => {
       colors.push(allcolors[validColors[i]]);
     }
     let query_res;
-    rate = 240;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
-    const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/${rate} AS string)
-    FROM 'chatters' WHERE stream_name=${SqlString.escape(req.body.username)} AND ts IN '${date_i}';`
-    const spacing = await c.query(sampling_q);
+    rate = req.body.spacing;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
+    const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/$1 AS string)
+    FROM 'chatters' WHERE stream_name=$2 AND ts IN $3;`
+    sampling_q_params = [rate, req.body.username, date_i]
+    const spacing = await c.query(sampling_q, sampling_q_params);
     if (spacing.rows[0].cast < 1) {
       spacing.rows[0].cast = 1;
     };
-    const sampling = spacing.rows[0].cast+'s';
+    const sampling = spacing.rows[0].cast + 's';
     for (let i=0; i < req.body.emote.length; i++) {
       emote_i = req.body.emote[i].label;
       // console.log(emote_i);
-      var emote_fixed = emote_i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // var emote_fixed = emote_i.replace(/[.*+?^${}()[\]\\]/g, '\\$&');
+      var emote_fixed = emote_i;
       // console.log(SqlString.escape("(?i)"+emote_i));
       // console.log(SqlString.escape("(?i)"+emote_i).replace("\\\\", "\\"));
 
       if (emote_fixed === 'All Chat Messages' || emote_i === '.*') {
         emote_fixed = 'All Chat Messages'
-        q = `(SELECT ts, count() c FROM 'chatters'
-        WHERE ts in ${SqlString.escape(date_i)} AND stream_name=${SqlString.escape(req.body.username)} SAMPLE BY ${sampling} FILL(0))`;
+        q_param = [date_i, req.body.username]
+        q = `SELECT ts, count() c FROM chatters
+        WHERE ts in $1 AND stream_name=$2 SAMPLE BY ${sampling} FILL(0)`;
       } else {
-        
-        q = `(SELECT ts, count() c FROM 'chatters' 
-        WHERE message~${SqlString.escape("(?i)\b"+emote_fixed+"\b").replace("\\\\", "\\")} 
-        AND ts IN ${SqlString.escape(date_i)} AND stream_name=${SqlString.escape(req.body.username)} SAMPLE BY ${sampling} FILL(0))`;
+        q_param = [emote_fixed, date_i, req.body.username]
+        q = `SELECT ts, count() c FROM chatters
+        WHERE message~concat('(?i\)\\b', $1, '\\b') AND ts IN $2 AND stream_name = $3 SAMPLE BY ${sampling} FILL(0)`;
         // q = `SELECT ts, sum(round_up((length(message) - length(regexp_replace(message, '(?i)${emote_i}', '')))/length('${emote_i}'), 0)) c FROM 'chatters'
         //     WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")}
         //     AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0);`
       }
-      query_res = await c.query(q);
+
+      const query_res = await c.query(q, q_param)
+ 
       eresp.push(
         {
           label: emote_i, 
@@ -311,7 +315,8 @@ const start = async () => {
 
   app.post("/dates", async (req, res) => {
     const c = await pool.connect();
-    const uniqueDates = await c.query(`SELECT * FROM vod_link WHERE stream_name = '${req.body.username}' ORDER BY stream_date DESC;`);
+    const d_params = [req.body.username]
+    const uniqueDates = await c.query(`SELECT * FROM vod_link WHERE stream_name = $1 ORDER BY stream_date DESC`, d_params);
     c.release();
     const max_res = uniqueDates.rows.slice(0, 1);
     let lstream;
@@ -330,13 +335,26 @@ const start = async () => {
     } else {
       live = false;
     }
-    res.json({dates: uniqueDates.rows, maxDate: max_res, live: live});
+    res.json({
+      dates: uniqueDates.rows, 
+      maxDate: max_res, 
+      live: live, 
+      accentColor: streamers[chatListeners.indexOf(req.body.username.slice(1))].accentColor,
+      textColor: streamers[chatListeners.indexOf(req.body.username.slice(1))].textColor
+    });
 });
 
   app.post("/topEmotes", async (req, res) => {
     const c = await pool.connect();
-    q = `SELECT DISTINCT message, count() c FROM 'chatters' WHERE stream_name = '${req.body.username}' AND ts IN ${SqlString.escape(req.body.date)} ORDER BY c DESC LIMIT 100;`
-    const query_res = await c.query(q);
+    const params = [req.body.username, req.body.date]
+    q = `SELECT DISTINCT message, count() c FROM 'chatters' WHERE stream_name = $1 AND ts IN $2 ORDER BY c DESC LIMIT 100`
+    const query_res = await c.query(q, params);
+    q2 = `SELECT count() FROM 'chatters' WHERE stream_name = $1 AND ts IN $2`
+    const numMsg = await c.query(q2, params)
+    q3 = `SELECT count_distinct(username) FROM 'chatters' WHERE stream_name=$1 AND ts IN $2`
+    const numChatters = await c.query(q3, params);
+    highlight_q = `SELECT * FROM 'highlights' WHERE stream_name=$1 AND timestamp IN $2 ORDER BY score DESC;`
+    const highlights = await c.query(highlight_q, params);
     const topEmotes = []
     for (let i = 0; i < query_res.rows.length; i++) {
       if (query_res.rows[i].message.split(" ").length > 1) {
@@ -353,7 +371,12 @@ const start = async () => {
       }
     }
     c.release();
-    res.json({topEmotes: topEmotes});
+    res.json({
+      topEmotes: topEmotes,
+      numMsg: numMsg.rows[0].count,
+      numChatters: numChatters.rows[0].count_distinct,
+      highlights: highlights.rows
+    });
     ;
   });
 
