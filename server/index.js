@@ -20,14 +20,6 @@ const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
 const tz = new Date().getTimezoneOffset() / 60;
 
-// const pool = new Pool({
-//   database: "chatters",
-//   host: databaseIPV4,
-//   password: "quest",
-//   port: 8812,
-//   user: "admin",
-//   max: 20,
-// })
 
 const Url = "https://id.twitch.tv/oauth2/token"
 const Data = {
@@ -48,80 +40,6 @@ fetch(Url, Params)
 
 const authProvider = new ClientCredentialsAuthProvider(clientId, clientSecret);
 const apiClient = new ApiClient({ authProvider });
-
-
-// const sender = new Sender({ bufferSize: 4096 });
-// const vodSender = new Sender({ bufferSize: 4096});  // create and connect a sender for the vod_link table
-// let sender;
-// let vodSender;
-
-
-// async function liveListener(streamer) {
-//   let stream;
-//   let vods;
-//   streamer.lastLiveCheck = new Date();  // reset the lastLiveCheck to now
-//   await apiClient.streams.getStreamByUserId(streamer.id).then((s) => {stream = s});  // fetch the current stream state of the streamer
-//   if (stream !== null) {
-//     // console.log(`checking...${stream.userName} is currently: ${stream.type} @ ${new Date()}`);
-//     if (!streamer.live) {  // if the previous status was not live and the current status is live, initiate some variables
-//       streamer.live = true;  // set the stream state to live
-//       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
-//       startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
-//       if (new Date - startTime > 90000) {  // Sometimes the twitch vod won't appear quickly
-//         // console.log(`current (or previous) start time is ${startTime}`)
-//         // This causes the stream to be "live", but the code will pull the previous stream vod as the start time 
-//         // In this case, we assume that the stream went live 90 seconds ago
-//         startTime = new Date(new Date() - 90000);
-//         // console.log(`I had to correct the start time to ${startTime} CST.`);
-//       }
-//       streamer.startTime = startTime;
-//       streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
-//       const c = await pool.connect();
-//       q = `SELECT * FROM vod_link ORDER BY stream_date DESC LIMIT 1`;
-//       query_res = await c.query(q);
-//       try {
-//         sender = new Sender({bufferSize: 4096});
-//         await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
-//       } catch { }
-
-//       vod_id = vods.data[0].id;
-//       d = new Date(streamer.streamerLocalTime).toISOString().split('T')[0];
-//       if (d === query_res.rows.stream_date) {
-//         q2 = `SELECT * FROM chatters ORDER BY ts DESC LIMIT 1`;
-//         q2_res = await c.query(q2);
-//         streamer.samedayOffset = q2_res.rows.ts
-//       }
-//       c.release();
-//       try {
-//         vodSender = new Sender({ bufferSize: 4096});
-//         await vodSender.connect({ port: 9009, host: databaseIPV4 });
-//       } catch {}
-//       vodSender
-//         .table('vod_link')
-//         .stringColumn('vid_no', vod_id)
-//         .stringColumn('stream_date', d)
-//         .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
-//         .atNow();
-//       if (TESTING) {
-//         vodSender.reset();  // When testing, don't send data to the database
-//       }
-//       else {
-//         await vodSender.flush();  // Send the data to the database
-//       }
-//       await vodSender.close();
-//     }
-//   } else {
-//     // console.log(`checking... ${streamer.name} is currently: not live @ ${new Date()}`);
-//     if (streamer.live) { // if the previous state was live and the current state is not, un-initialize some variables
-//       sender.close();
-//     }
-//     streamer.samedayOffset = 0
-//     streamer.live = false;
-//     streamer.startTime = null;
-//   }
-
-// };
-
 
 const streamers = [
   {name: 'MOONMOON', id: 121059319, accentColor: '#54538C', textColor: '#EAEEF2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
@@ -188,11 +106,7 @@ const start = async () => {
     const sampling = spacing.rows[0].cast + 's';
     for (let i=0; i < req.body.emote.length; i++) {
       emote_i = req.body.emote[i].label;
-      // console.log(emote_i);
-      // var emote_fixed = emote_i.replace(/[.*+?^${}()[\]\\]/g, '\\$&');
       var emote_fixed = emote_i;
-      // console.log(SqlString.escape("(?i)"+emote_i));
-      // console.log(SqlString.escape("(?i)"+emote_i).replace("\\\\", "\\"));
 
       if (emote_fixed === 'All Chat Messages' || emote_i === '.*') {
         emote_fixed = 'All Chat Messages'
@@ -258,26 +172,14 @@ const start = async () => {
     const uniqueDates = await c.query(`SELECT * FROM vod_link WHERE stream_name = $1 ORDER BY stream_date DESC`, d_params);
     c.release();
     const max_res = uniqueDates.rows.slice(0, 1);
-    let lstream;
+
     let live;
-    let clips;
-    let temp;
     await apiClient.streams.getStreamByUserName(req.body.username.slice(1)).then((s) => lstream = s);
-    await apiClient.videos.getVideoById(1724443955).then((v) => temp = v);
-    // console.log(temp.creationDate)
-    await apiClient.clips.getClipsForBroadcaster(121059319, {startDate: new Date('2023-01-31T00:00:00'), endDate: new Date('2023-01-31T23:59:59'), limit: 100}).then((c) => clips = c.data);
-    // for (let i=0; i < clips.length; i++) {
-    //   console.log(clips[i].creationDate, clips[i].videoId, clips[i].vodOffset, clips[i].url)
-    // }
-    if (lstream !== null) {
-      live = true;
-    } else {
-      live = false;
-    }
+    lstream !== null ? live = true : live = false;
     res.json({
       dates: uniqueDates.rows, 
       maxDate: max_res, 
-      live: live, 
+      live: live,
       accentColor: streamers[chatListeners.indexOf(req.body.username.slice(1))].accentColor,
       textColor: streamers[chatListeners.indexOf(req.body.username.slice(1))].textColor
     });
@@ -288,12 +190,12 @@ const start = async () => {
     const params = [req.body.username, req.body.date]
     q = `SELECT DISTINCT message, count() c FROM 'chatters' WHERE stream_name = $1 AND ts IN $2 ORDER BY c DESC LIMIT 100`
     const query_res = await c.query(q, params);
-    // q2 = `SELECT count() FROM 'chatters' WHERE stream_name = $1 AND ts IN $2`
-    // const numMsg = await c.query(q2, params)
-    // q3 = `SELECT count_distinct(username) FROM 'chatters' WHERE stream_name=$1 AND ts IN $2`
-    // const numChatters = await c.query(q3, params);
-    // highlight_q = `SELECT * FROM 'highlights' WHERE stream_name=$1 AND timestamp IN $2 ORDER BY score DESC;`
-    // const highlights = await c.query(highlight_q, params);
+    q2 = `SELECT count() FROM 'chatters' WHERE stream_name = $1 AND ts IN $2`
+    const numMsg = await c.query(q2, params)
+    q3 = `SELECT count_distinct(username) FROM 'chatters' WHERE stream_name=$1 AND ts IN $2`
+    const numChatters = await c.query(q3, params);
+    highlight_q = `SELECT * FROM 'highlights' WHERE stream_name=$1 AND timestamp IN $2 ORDER BY score DESC;`
+    const highlights = await c.query(highlight_q, params);
     const topEmotes = []
     for (let i = 0; i < query_res.rows.length; i++) {
       if (query_res.rows[i].message.split(" ").length > 1) {
@@ -310,11 +212,15 @@ const start = async () => {
       }
     }
     c.release();
+
+
+
     res.json({
       topEmotes: topEmotes,
-      // numMsg: numMsg.rows[0].count,
-      // numChatters: numChatters.rows[0].count_distinct,
-      // highlights: highlights.rows
+      numMsg: numMsg.rows[0].count,
+      numChatters: numChatters.rows[0].count_distinct,
+      highlights: highlights.rows,
+
     });
     ;
   });
@@ -341,8 +247,6 @@ else {
   https
   .createServer(
     {
-      // key: fs.readFileSync("key.pem"),
-      // cert: fs.readFileSync("cert.pem"),
       key: fs.readFileSync("/etc/letsencrypt/live/twitchlights.com/privkey.pem"),
       cert: fs.readFileSync("/etc/letsencrypt/live/twitchlights.com/cert.pem"),
     },
