@@ -211,8 +211,10 @@ const start = async () => {
         topEmotes.push(query_res.rows[i].message);
       }
     }
-    for (let h = 0; h < highlights.rows.length; h++) {
-      highlights.rows[h].timestamp.setHours(highlights.rows[h].timestamp.getHours() - 6);
+    if (TESTING) {
+      for (let h = 0; h < highlights.rows.length; h++) {
+        highlights.rows[h].timestamp.setHours(highlights.rows[h].timestamp.getHours() - 6);
+      }
     }
     c.release();
 
