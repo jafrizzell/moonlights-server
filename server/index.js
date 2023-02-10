@@ -144,72 +144,12 @@ if (TESTING) {
   var options = { origin: 'http://localhost:3000' };  // For local testing
 }
 else {
-  var options = { origin: ['https://twitchlights.com', 'https://www.twitchlights.com'] };  // For production deployment
+  var options = { origin: 'https://twitchlights.com' };  // For production deployment
 };
 app.use(express.json());
 app.use(cors(options));
 app.options('*', cors(options));
 app.use(bodyParser.urlencoded({extended: false}));
-
-
-// const insertion = async () => {
-//   const chatClient = new tmi.Client({
-//     channels: chatListeners
-//   });
-
-//   await chatClient.connect();
-//   var c = 0;
-//   let msgTime;
-//   let diff;
-
-//   chatClient.on('message', async (channel, tags, message, self) => {
-//     roomIndex = chatListeners.indexOf(channel);
-//     // check live status every 30000 ms (30 seconds)
-//     if (new Date() - streamers[roomIndex].lastLiveCheck > 30000) {
-//       await liveListener(streamers[roomIndex]);
-//     };
-//     if (streamers[roomIndex].live) {
-
-//       if (streamers[roomIndex].startTime !== null) {
-//         ttime = new Date(streamers[roomIndex].startTime);
-//         ttime.setHours(ttime.getHours() - tz);
-//         msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
-//         msgTime.setHours(msgTime.getHours() - tz);
-//         msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
-//         diff = (msgTime - ttime) / 1000;
-//         ttime.setHours(~~(diff/3600) - tz);
-//         diff = diff % 3600;
-//         ttime.setMinutes(~~(diff/60));
-//         diff = diff % 60;
-//         ttime.setSeconds(diff);
-//         ttime.setMilliseconds(000);
-//         ttime = new Date(ttime + streamers[roomIndex].samedayOffset);
-//         ttime = ttime.getTime() + '000000';
-//         try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
-//           c += 1;
-//           sender
-//             .table('chatters')
-//             .symbol('stream_name', channel)
-//             .stringColumn('username', tags['display-name'])
-//             .stringColumn('message', message)
-//             .at(ttime);
-//         } catch { console.log('error encountered when sending to the chatters table')}
-//         }
-//       }
-
-//     if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
-//       c = 0;
-//       if (TESTING) {
-//         sender.reset();  // When testing, don't send data to the database
-//       }
-//       else {
-//         await sender.flush();  // Send data to the database
-//       }
-//     };
-//   });
-// };
-// insertion().catch(console.error);
-
 
 
 const pool = new Pool({
@@ -237,7 +177,7 @@ const start = async () => {
     for (let i=0; i < validColors.length; i++) {
       colors.push(allcolors[validColors[i]]);
     }
-    rate = req.body.spacing;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
+    const rate = req.body.spacing;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
     const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/$1 AS string)
     FROM 'chatters' WHERE stream_name=$2 AND ts IN $3;`
     sampling_q_params = [rate, req.body.username, date_i]
@@ -348,12 +288,12 @@ const start = async () => {
     const params = [req.body.username, req.body.date]
     q = `SELECT DISTINCT message, count() c FROM 'chatters' WHERE stream_name = $1 AND ts IN $2 ORDER BY c DESC LIMIT 100`
     const query_res = await c.query(q, params);
-    q2 = `SELECT count() FROM 'chatters' WHERE stream_name = $1 AND ts IN $2`
-    const numMsg = await c.query(q2, params)
-    q3 = `SELECT count_distinct(username) FROM 'chatters' WHERE stream_name=$1 AND ts IN $2`
-    const numChatters = await c.query(q3, params);
-    highlight_q = `SELECT * FROM 'highlights' WHERE stream_name=$1 AND timestamp IN $2 ORDER BY score DESC;`
-    const highlights = await c.query(highlight_q, params);
+    // q2 = `SELECT count() FROM 'chatters' WHERE stream_name = $1 AND ts IN $2`
+    // const numMsg = await c.query(q2, params)
+    // q3 = `SELECT count_distinct(username) FROM 'chatters' WHERE stream_name=$1 AND ts IN $2`
+    // const numChatters = await c.query(q3, params);
+    // highlight_q = `SELECT * FROM 'highlights' WHERE stream_name=$1 AND timestamp IN $2 ORDER BY score DESC;`
+    // const highlights = await c.query(highlight_q, params);
     const topEmotes = []
     for (let i = 0; i < query_res.rows.length; i++) {
       if (query_res.rows[i].message.split(" ").length > 1) {
@@ -372,9 +312,9 @@ const start = async () => {
     c.release();
     res.json({
       topEmotes: topEmotes,
-      numMsg: numMsg.rows[0].count,
-      numChatters: numChatters.rows[0].count_distinct,
-      highlights: highlights.rows
+      // numMsg: numMsg.rows[0].count,
+      // numChatters: numChatters.rows[0].count_distinct,
+      // highlights: highlights.rows
     });
     ;
   });
