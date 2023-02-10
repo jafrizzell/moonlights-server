@@ -8,7 +8,7 @@ const { ApiClient } = require('@twurple/api');
 const { Sender } = require("@questdb/nodejs-client");
 const bodyParser = require('body-parser');
 const palette = require('./palette');
-var SqlString = require('sqlstring');
+// var SqlString = require('sqlstring');
 const credentials = require('../secrets/secrets.js');
 const PORT = process.env.PORT || 6969;
 const tmi = require('tmi.js');
@@ -237,7 +237,6 @@ const start = async () => {
     for (let i=0; i < validColors.length; i++) {
       colors.push(allcolors[validColors[i]]);
     }
-    let query_res;
     rate = req.body.spacing;  // number of buckets to sample the data into, more = finer resolution but slightly slower to load
     const sampling_q = `SELECT CAST((3600*hour(max(ts)) + 60*minute(max(ts)) + second(max(ts)))/$1 AS string)
     FROM 'chatters' WHERE stream_name=$2 AND ts IN $3;`
