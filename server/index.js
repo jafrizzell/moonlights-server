@@ -86,6 +86,10 @@ const start = async () => {
 
   app.post("/fetch", async (req, res) => {
     date_i = req.body.date;
+    const dateFormat = /^[0-9]{4}\-[0-9]{2}\-[0-9]{2}?$/;
+    if (!dateFormat.test(date_i)) {
+      return res.status(400).json('Invalid request')
+    }
     const c = await pool.connect();
     const eresp = [];
     var labels = req.body.labels;
@@ -106,14 +110,14 @@ const start = async () => {
     const sampling = spacing.rows[0].cast + 's';
     for (let i=0; i < req.body.emote.length; i++) {
       emote_i = req.body.emote[i].label;
-      var emote_fixed = emote_i;
-
+      
       if (emote_fixed === 'All Chat Messages' || emote_i === '.*') {
         emote_fixed = 'All Chat Messages'
         q_param = [date_i, req.body.username.toLowerCase()]
         q = `SELECT ts, count() c FROM chatters
         WHERE ts in $1 AND stream_name=$2 SAMPLE BY ${sampling} FILL(0)`;
       } else {
+        var emote_fixed = emote_i.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
         q_param = [emote_fixed, date_i, req.body.username.toLowerCase()]
         q = `SELECT ts, count() c FROM chatters
         WHERE message~concat('(?i\)\\b', $1, '\\b') AND ts IN $2 AND stream_name = $3 SAMPLE BY ${sampling} FILL(0)`;
@@ -186,6 +190,10 @@ const start = async () => {
 });
 
   app.post("/topEmotes", async (req, res) => {
+    const dateFormat = /^[0-9]{4}\-[0-9]{2}\-[0-9]{2}?$/;
+    if (!dateFormat.test(req.body.date)) {
+      return res.status(400).json('Invalid request')
+    }
     const c = await pool.connect();
     const params = [req.body.username.toLowerCase(), req.body.date]
     q = `SELECT DISTINCT message, count() c FROM 'chatters' WHERE stream_name = $1 AND ts IN $2 ORDER BY c DESC LIMIT 100`
