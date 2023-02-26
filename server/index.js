@@ -8,7 +8,6 @@ const { ApiClient } = require('@twurple/api');
 const { Sender } = require("@questdb/nodejs-client");
 const bodyParser = require('body-parser');
 const palette = require('./palette');
-// var SqlString = require('sqlstring');
 const credentials = require('../secrets/secrets.js');
 const PORT = process.env.PORT || 6969;
 const tmi = require('tmi.js');
@@ -24,10 +23,12 @@ if (DEMONSTRATION) {
   chat_table = 'chatters_temp';
   vod_table = 'vod_link_temp';
   highlights_table = 'highlights_temp';
+  transcript_table = 'transcripts_temp';
 } else {
   chat_table = 'chatters';
   vod_table = 'vod_link';
   highlights_table = 'highlights';
+  transcript_table = 'transcripts';
 } 
 
 const fetch = (...args) =>
@@ -57,8 +58,8 @@ const apiClient = new ApiClient({ authProvider });
 
 const streamers = [
   {name: 'A_Seagull', id: 19070311, accentColor: '#5bdde1', textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  // {name: 'DougDougW', id: 31507411, accentColor: '#d64a0d', textColor: '#EAEEF2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'filian', id: 198633200, accentColor: '#9482b5', textColor: '#eaeef2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  
   {name: 'GEEGA', id: 36973271, accentColor: '#a4b6c4',  textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'Jerma985', id: 82350088, accentColor: '#1ac7ac', textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   {name: 'MOONMOON', id: 121059319, accentColor: '#adace5', textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
@@ -67,7 +68,6 @@ const streamers = [
   // {name: 'Surefour', id: 2982838, accentColor: '#758794', textColor: '#eaeef2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
     
 
-  // {name: 'DougDougW', id: 31507411, accentColor: '#d64a0d', textColor: '#EAEEF2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'HisWattson', id: 123182260, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
   // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null}, 
@@ -224,6 +224,9 @@ const start = async () => {
     const num_chatters = await c.query(q3, params);
     highlight_q = `SELECT * FROM '${highlights_table}' WHERE stream_name=$1 AND timestamp IN $2 ORDER BY score DESC;`
     const highlights = await c.query(highlight_q, params);
+    transcript_q = `SELECT * FROM '${transcript_table}' WHERE stream_name=$1 AND timestamp in $2 ORDER BY timestamp ASC;`
+    const transcript = await c.query(transcript_q, params)
+    const caseTopEmotes = []
     const topEmotes = []
     for (let i = 0; i < query_res.rows.length; i++) {
       if (query_res.rows[i].message.split(" ").length > 1) {
@@ -235,13 +238,17 @@ const start = async () => {
           }
         }
       }
-      if (!topEmotes.includes(query_res.rows[i].message.trim()) && query_res.rows[i].message.length < 50) {
-        topEmotes.push(query_res.rows[i].message);
+      if (!caseTopEmotes.includes(query_res.rows[i].message.trim().toUpperCase()) && query_res.rows[i].message.length < 50) {
+        topEmotes.push(query_res.rows[i].message.trim());
+        caseTopEmotes.push(query_res.rows[i].message.trim().toUpperCase())
       }
     }
     if (TESTING) {
       for (let h = 0; h < highlights.rows.length; h++) {
         highlights.rows[h].timestamp.setHours(highlights.rows[h].timestamp.getHours() - 6);
+      }
+      for (let h = 0; h < transcript.rows.length; h++) {
+        transcript.rows[h].timestamp.setHours(transcript.rows[h].timestamp.getHours() - 6);
       }
     }
     c.release();
@@ -251,6 +258,7 @@ const start = async () => {
       numMsg: numMsg.rows[0].count,
       numChatters: num_chatters.rows[0].count_distinct,
       highlights: highlights.rows,
+      transcript: transcript.rows,
 
     });
     ;
