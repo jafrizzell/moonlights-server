@@ -10,7 +10,7 @@ const bodyParser = require('body-parser');
 const palette = require('./palette');
 const credentials = require('../secrets/secrets.js');
 const PORT = process.env.PORT || 6969;
-const tmi = require('tmi.js');
+// const tmi = require('tmi.js');
 
 
 const TESTING = false;
@@ -153,7 +153,6 @@ const start = async () => {
       }
 
       const query_res = await c.query(q, q_param)
-      console.log(query_res.rows[0])
       eresp.push(
         {
           label: emote_i, 
