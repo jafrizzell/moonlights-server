@@ -5,7 +5,7 @@ const fs = require('fs');
 const Pool  = require('pg-pool');
 const { ClientCredentialsAuthProvider } = require('@twurple/auth');
 const { ApiClient } = require('@twurple/api');
-const { Sender } = require("@questdb/nodejs-client");
+// const { Sender } = require("@questdb/nodejs-client");
 const bodyParser = require('body-parser');
 const palette = require('./palette');
 const credentials = require('../secrets/secrets.js');
@@ -110,6 +110,7 @@ const start = async () => {
     if (!dateFormat.test(date_i)) {
       return res.status(400).json('Invalid request')
     }
+    const smiley_faces = [':)', ':(', 'D:', ':))', ';)', '<3', ':3', 'T_T', '<\3', ':\\', '-_-', ':-)']
     const c = await pool.connect();
     const eresp = [];
     var labels = req.body.labels;
@@ -137,17 +138,22 @@ const start = async () => {
         q = `SELECT ts, count() c FROM '${chat_table}'
         WHERE ts in $1 AND stream_name=$2 SAMPLE BY ${sampling} FILL(0)`;
       } else {
-        var emote_fixed = emote_i.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
+        var emote_fixed = emote_i.replace(/[^\w\s]/gi, "\\$&");
         q_param = [emote_fixed, date_i, req.body.username.toLowerCase()]
-        q = `SELECT ts, count() c FROM '${chat_table}'
-        WHERE message~concat('(?i\)\\b', $1, '\\b') AND ts IN $2 AND stream_name = $3 SAMPLE BY ${sampling} FILL(0)`;
+        if (smiley_faces.includes(emote_i)) {
+          q = `SELECT ts, count() c FROM '${chat_table}'
+          WHERE message~concat('(?i\)', $1) AND ts IN $2 AND stream_name = $3 SAMPLE BY ${sampling} FILL(0)`;
+        } else {
+          q = `SELECT ts, count() c FROM '${chat_table}'
+          WHERE message~concat('(?i\)\\b', $1, '\\b') AND ts IN $2 AND stream_name = $3 SAMPLE BY ${sampling} FILL(0)`;
+        }
         // q = `SELECT ts, sum(round_up((length(message) - length(regexp_replace(message, '(?i)${emote_i}', '')))/length('${emote_i}'), 0)) c FROM 'chatters_temp'
         //     WHERE message~${SqlString.escape("(?i)^.*"+emote_i+".*$")}
         //     AND ts IN ${SqlString.escape(date_i)} AND stream_name='${req.body.username}' SAMPLE BY ${sampling} FILL(0);`
       }
 
       const query_res = await c.query(q, q_param)
- 
+      console.log(query_res.rows[0])
       eresp.push(
         {
           label: emote_i, 
