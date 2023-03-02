@@ -95,34 +95,21 @@ async function liveListener(streamer) {
         }
       }
       c.release();
-      if (TESTING) {
-        if (streamer.live === 'true') {
-          try {
-            vodSender = new Sender({ bufferSize: 4096});
-            await vodSender.connect({ port: 9009, host: databaseIPV4 });
-          } catch {}
-          vodSender
-            .table('vod_link')
-            .stringColumn('vid_no', vod_id)
-            .stringColumn('stream_date', d)
-            .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
-            .atNow();
+      if (streamer.live === 'true') {
+        try {
+          vodSender = new Sender({ bufferSize: 4096});
+          await vodSender.connect({ port: 9009, host: databaseIPV4 });
+        } catch {}
+        vodSender
+          .table('vod_link')
+          .stringColumn('vid_no', vod_id)
+          .stringColumn('stream_date', d)
+          .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
+          .stringColumn('highlight_status', 'live')
+          .atNow();
+        if (TESTING) {
           vodSender.reset();  // When testing, don't send data to the database
-        }
-      }
-      else {
-        if (streamer.live === 'true') {
-          try {
-            vodSender = new Sender({ bufferSize: 4096});
-            await vodSender.connect({ port: 9009, host: databaseIPV4 });
-          } catch {}
-          vodSender
-            .table('vod_link')
-            .stringColumn('vid_no', vod_id)
-            .stringColumn('stream_date', d)
-            .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
-            .atNow();
-
+        } else {
           await vodSender.flush();  // Send the data to the database
         }
       }
@@ -130,6 +117,12 @@ async function liveListener(streamer) {
     }
   } else {
     if (streamer.live == 'true') { // if the previous state was live and the current state is not, un-initialize some variables
+      c = await pool.connect();
+      // Set the stream end time
+      const endTime = new Date(new Date().setHours(new Date().getHours() - 6)).toISOString()
+      updateHighlightStatus = await c.query(`UPDATE vod_link SET highlight_status=${endTime} WHERE vid_no='${vod_id}';`);
+      await c.query('COMMIT');
+      c.release();
       sender.close();
     }
     streamer.samedayOffset = 0
@@ -169,9 +162,6 @@ const insertion = async () => {
     
     chatClient.on('message', async (channel, tags, message, self) => {
       if (self) return;
-      // if (channel === '#moonmoon') {
-      //   console.log(channel, chatListeners.indexOf(channel))
-      // }
       const roomIndex = chatListeners.indexOf(channel);
       // check live status every 5000 ms (5 seconds)
       if (new Date() - streamers[roomIndex].lastLiveCheck > 5000) {
@@ -179,7 +169,6 @@ const insertion = async () => {
         
       };
       if (streamers[roomIndex].live != 'false') {
-        // console.log(channel, streamers[roomIndex].name, roomIndex, chatListeners.indexOf(channel))
         if (streamers[roomIndex].startTime !== null) {
           ttime = new Date(streamers[roomIndex].startTime);
           ttime.setHours(ttime.getHours() - tz);
@@ -202,10 +191,7 @@ const insertion = async () => {
             ttime.setSeconds(ttime.getSeconds() + streamers[roomIndex].samedayOffset.getSeconds());
           } catch {}
           ttime.setMilliseconds(000);
-          // console.log(ttime)
-          // console.log(streamers[roomIndex].samedayOffset)
           
-          // ttime = new Date(ttime + streamers[roomIndex].samedayOffset);
           ttime = ttime.getTime() + '000000';
           try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
             c += 1;
