@@ -55,7 +55,6 @@ async function liveListener(streamer) {
   catch {console.log('api call failed')};
   if (stream !== null) {
     if (streamer.live != 'true') {  // if the previous status was not live and the current status is live, initiate some variables
-      console.log('someone is live!')
       streamer.live = 'true';  // set the stream state to live
       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
       try {
@@ -168,7 +167,6 @@ const insertion = async () => {
       const roomIndex = chatListeners.indexOf(channel);
       // check live status every 5000 ms (5 seconds)
       if (new Date() - streamers[roomIndex].lastLiveCheck > 5000) {
-        console.log('checking stream')
         await liveListener(streamers[roomIndex]);
         
       };
