@@ -55,15 +55,17 @@ async function liveListener(streamer) {
   catch {console.log('api call failed')};
   if (stream !== null) {
     if (streamer.live != 'true') {  // if the previous status was not live and the current status is live, initiate some variables
-
+      console.log('someone is live!')
       streamer.live = 'true';  // set the stream state to live
       await apiClient.videos.getVideosByUser(streamer.id).then((v) => vods = v);
-      startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
+      try {
+        startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
+      } catch { startTime = new Date()}
       const c = await pool.connect();
       q = `SELECT * FROM vod_link WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY stream_date DESC LIMIT 1`;
       query_res = await c.query(q);
-      // console.log(query_res.rows[0].vid_no);
-      if (query_res.rows.length > 0) {
+
+      if (query_res.rows.length > 0 && vods.data.length > 0) {
         if (query_res.rows[0].vid_no == vods.data[0].id) {  
           // Sometimes the twitch vod won't appear quickly
           // This causes the stream to be "live", but the code will pull the previous stream vod_id 
@@ -85,7 +87,9 @@ async function liveListener(streamer) {
       streamer.startTime = startTime;
       streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset - tz)
       
-      vod_id = vods.data[0].id;
+      try {
+        vod_id = vods.data[0].id;
+      } catch {vod_id = '0000000000'}
       d = new Date(streamer.streamerLocalTime).toISOString().split('T')[0];
       if (query_res.rows.length > 0) {
         if (d === query_res.rows[0].stream_date) {
@@ -134,21 +138,20 @@ async function liveListener(streamer) {
 
 
 const streamers = [
-    {name: 'MOONMOON', id: 121059319, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-    {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60}, 
-    {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-    {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-    
-    // {name: 'DougDougW', id: 31507411, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-    // {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-    // {name: 'HisWattson', id: 123182260, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
-    // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 14}, 
+  {name: 'MOONMOON', id: 121059319, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60}, 
+  {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60}, 
+  {name: 'DougDougW', id: 31507411, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  
+  // {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  // {name: 'HisWattson', id: 123182260, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
+  {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 14}, 
   ];
   const chatListeners = [];
   for (let i = 0; i < streamers.length; i++) {
     chatListeners.push(streamers[i].name.toLowerCase())
   };
-
 
 const insertion = async () => {
     const chatClient = new tmi.Client({
@@ -165,6 +168,7 @@ const insertion = async () => {
       const roomIndex = chatListeners.indexOf(channel);
       // check live status every 5000 ms (5 seconds)
       if (new Date() - streamers[roomIndex].lastLiveCheck > 5000) {
+        console.log('checking stream')
         await liveListener(streamers[roomIndex]);
         
       };
