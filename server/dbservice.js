@@ -116,7 +116,9 @@ async function liveListener(streamer) {
           await vodSender.flush();  // Send the data to the database
         }
       }
-      await vodSender.close();
+      try {
+        await vodSender.close();
+      } catch {}
     }
   } else {
     if (streamer.live == 'true') { // if the previous state was live and the current state is not, un-initialize some variables
