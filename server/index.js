@@ -5,15 +5,13 @@ const fs = require('fs');
 const Pool  = require('pg-pool');
 const { ClientCredentialsAuthProvider } = require('@twurple/auth');
 const { ApiClient } = require('@twurple/api');
-// const { Sender } = require("@questdb/nodejs-client");
 const bodyParser = require('body-parser');
 const palette = require('./palette');
 const credentials = require('../secrets/secrets.js');
 const PORT = process.env.PORT || 6969;
-// const tmi = require('tmi.js');
 
 
-const TESTING = false;
+const TESTING = true;
 const DEMONSTRATION = false;
 let chat_table;
 let vod_table;
@@ -58,7 +56,7 @@ const apiClient = new ApiClient({ authProvider });
 
 const streamers = [
   {name: 'A_Seagull', id: 19070311, accentColor: '#5bdde1', textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  // {name: 'DougDougW', id: 31507411, accentColor: '#d64a0d', textColor: '#EAEEF2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'DougDoug', id: 31507411, accentColor: '#d64a0d', textColor: '#EAEEF2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'filian', id: 198633200, accentColor: '#9482b5', textColor: '#eaeef2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   {name: 'GEEGA', id: 36973271, accentColor: '#a4b6c4',  textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'Jerma985', id: 82350088, accentColor: '#1ac7ac', textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
