@@ -122,15 +122,13 @@ async function liveListener(streamer) {
     }
   } else {
     if (streamer.live == 'true') { // if the previous state was live and the current state is not, un-initialize some variables
-      // const p = await pool.connect();
-      // // Set the stream end time
-      // const endTime = new Date(new Date().setHours(new Date().getHours() - 6)).toISOString()
-      // endParams = [String(endTime), String(vod_id)]
-      // updateHighlightStatus = await p.query(`UPDATE vod_link SET highlight_status = $1 WHERE vid_no = $2 ;`, endParams);
-      // await p.query('COMMIT');
-      // try {
-      //   p.release();
-      // } catch { }
+      const p = await pool.connect();
+      // Set the stream end time
+      const endTime = new Date(new Date().setHours(new Date().getHours() - 6)).toISOString()
+      endParams = [String(endTime), String(vod_id)]
+      updateHighlightStatus = await p.query(`UPDATE vod_link SET highlight_status = $1 WHERE vid_no = $2 ;`, endParams);
+      await p.query('COMMIT');
+      p.release();
       sender.close();
     }
     streamer.samedayOffset = 0
@@ -143,10 +141,10 @@ async function liveListener(streamer) {
 
 const streamers = [
   {name: 'MOONMOON', id: 121059319, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60}, 
-  {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60}, 
-  {name: 'DougDoug', id: 31507411, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  // {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60}, 
+  // {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  // {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60}, 
+  // {name: 'DougDoug', id: 31507411, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   
   // {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'HisWattson', id: 123182260, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
