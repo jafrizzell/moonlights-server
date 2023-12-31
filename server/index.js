@@ -11,7 +11,7 @@ const credentials = require('../secrets/secrets.js');
 const PORT = process.env.PORT || 6969;
 
 
-const TESTING = true;
+const TESTING = false;
 const DEMONSTRATION = false;
 let chat_table;
 let vod_table;
