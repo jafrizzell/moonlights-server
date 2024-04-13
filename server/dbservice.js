@@ -22,6 +22,7 @@ const pool = new Pool({
   max: 20,
 })
 
+
 const Url = "https://id.twitch.tv/oauth2/token"
 const Data = {
   client_id: clientId,
