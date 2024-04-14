@@ -11,7 +11,7 @@ const TESTING = false;
 
 const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
-const tz = new Date().getTimezoneOffset() / 60;
+// const tz = new Date().getTimezoneOffset() / 60;
 
 const pool = new Pool({
   database: "chatters",
@@ -21,7 +21,6 @@ const pool = new Pool({
   user: "admin",
   max: 20,
 })
-
 
 const Url = "https://id.twitch.tv/oauth2/token"
 const Data = {
@@ -85,7 +84,7 @@ async function liveListener(streamer) {
         await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
       } catch { }
       streamer.startTime = startTime;
-      streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset - tz)
+      streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
       
       try {
         vod_id = vods.data[0].id;
@@ -100,16 +99,19 @@ async function liveListener(streamer) {
       }
       c.release();
       if (streamer.live === 'true') {
-        try {
-          vodSender = new Sender({ bufferSize: 4096});
-          await vodSender.connect({ port: 9009, host: databaseIPV4 });
-        } catch {}
+        vodSender = null;
+        while (!vodSender) {
+          try {
+            vodSender = new Sender({ bufferSize: 4096});
+            await vodSender.connect({ port: 9009, host: databaseIPV4 });
+          } catch {console.log(`failed to connect vodSender: ${d}`)}
+        }
         vodSender
           .table('vod_link')
           .stringColumn('vid_no', vod_id)
           .stringColumn('stream_date', d)
           .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
-          .stringColumn('highlight_status', 'live')
+          .stringColumn('highlight_status', 'done')
           .atNow();
         if (TESTING) {
           vodSender.reset();  // When testing, don't send data to the database
@@ -122,26 +124,26 @@ async function liveListener(streamer) {
       } catch {}
     }
   } else {
-    if (streamer.live == 'true') { // if the previous state was live and the current state is not, un-initialize some variables
-      const p = await pool.connect();
-      // Set the stream end time
-      const endTime = new Date(new Date().setHours(new Date().getHours() - 6)).toISOString()
-      endParams = [String(endTime), String(vod_id)]
-      updateHighlightStatus = await p.query(`UPDATE vod_link SET highlight_status = $1 WHERE vid_no = $2 ;`, endParams);
-      await p.query('COMMIT');
-      p.release();
-      sender.close();
-    }
-    streamer.samedayOffset = 0
-    streamer.live = 'false';
-    streamer.startTime = null;
+      if (streamer.live == 'true') { // if the previous state was live and the current state is not, un-initialize some variables
+        // const p = await pool.connect();
+        // Set the stream end time
+        // const endTime = new Date(new Date().setHours(new Date().getHours() - 6)).toISOString()
+        // endParams = [String(endTime), String(vod_id)]
+        // updateHighlightStatus = await p.query(`UPDATE vod_link SET highlight_status = $1 WHERE vid_no = $2 ;`, endParams);
+        // await p.query('COMMIT');
+        // p.release();
+        // sender.close();
+        streamer.samedayOffset = 0
+        streamer.live = 'false';
+        streamer.startTime = null;
+      }
   }
 
 };
 
 
 const streamers = [
-  {name: 'MOONMOON', id: 121059319, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'MOONMOON', id: 121059319, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -7, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'nyanners', id: 82350088, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60}, 
   // {name: 'A_Seagull', id: 19070311, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'GEEGA', id: 36973271, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60}, 
@@ -149,7 +151,7 @@ const streamers = [
   
   // {name: 'PENTA', id: 84316241, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'HisWattson', id: 123182260, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 1, samedayOffset: 0, lastLiveCheck: null},
-  // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 0, samedayOffset: 0, lastLiveCheck: null, vod_life: 14}, 
+  // {name: 'meactually', id: 92639761, live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: 8, samedayOffset: 0, lastLiveCheck: null, vod_life: 14}, 
   ];
   const chatListeners = [];
   for (let i = 0; i < streamers.length; i++) {
@@ -177,26 +179,27 @@ const insertion = async () => {
       if (streamers[roomIndex].live != 'false') {
         if (streamers[roomIndex].startTime !== null) {
           ttime = new Date(streamers[roomIndex].startTime);
-          ttime.setHours(ttime.getHours() - tz);
           msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
-          msgTime.setHours(msgTime.getHours() - tz);
           msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
           diff = (msgTime - ttime) / 1000;
-          ttime.setHours(~~(diff/3600) - tz)
+          ttime.setHours(~~(diff/3600) + streamers[roomIndex].streamerTzOffset)
+
           try {
             ttime.setHours(ttime.getHours() + streamers[roomIndex].samedayOffset.getHours());
           } catch {}
           diff = diff % 3600;
           ttime.setMinutes(~~(diff/60));
+
           try {
             ttime.setMinutes(ttime.getMinutes() + streamers[roomIndex].samedayOffset.getMinutes());
           } catch {}
           diff = diff % 60;
           ttime.setSeconds(diff);
+
           try {
             ttime.setSeconds(ttime.getSeconds() + streamers[roomIndex].samedayOffset.getSeconds());
           } catch {}
-          ttime.setMilliseconds(000);
+          ttime.setMilliseconds(0o0);
           
           ttime = ttime.getTime() + '000000';
           try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
@@ -214,6 +217,7 @@ const insertion = async () => {
       if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
         c = 0;
         if (TESTING) {
+
           sender.reset();  // When testing, don't send data to the database
         }
         else {

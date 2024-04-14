@@ -31,7 +31,7 @@ if (DEMONSTRATION) {
 
 const fetch = (...args) =>
 	import('node-fetch').then(({default: fetch}) => fetch(...args));
-const tz = new Date().getTimezoneOffset() / 60;
+// const tz = new Date().getTimezoneOffset() / 60;
 
 
 const Url = "https://id.twitch.tv/oauth2/token"
@@ -60,7 +60,7 @@ const streamers = [
   // {name: 'filian', id: 198633200, accentColor: '#9482b5', textColor: '#eaeef2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'GEEGA', id: 36973271, accentColor: '#a4b6c4',  textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'Jerma985', id: 82350088, accentColor: '#1ac7ac', textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
-  {name: 'MOONMOON', id: 121059319, accentColor: '#adace5', textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
+  {name: 'MOONMOON', id: 121059319, accentColor: '#adace5', textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -7, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'nyanners', id: 82350088, accentColor: '#ebbfce', textColor: '#121212', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'smallant', id: 117349875, accentColor: '#075f73', textColor: '#eaeef2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
   // {name: 'Surefour', id: 2982838, accentColor: '#758794', textColor: '#eaeef2', live: false, startTime: null, streamerLocalTime: null, streamerTzOffset: -2, samedayOffset: 0, lastLiveCheck: null, vod_life: 60},
@@ -108,7 +108,7 @@ const start = async () => {
     if (!dateFormat.test(date_i)) {
       return res.status(400).json('Invalid request')
     }
-    const smiley_faces = [':)', ':(', 'D:', ':))', ';)', '<3', ':3', 'T_T', '<\3', ':\\', '-_-', ':-)']
+    const smiley_faces = [':)', ':(', 'D:', ':))', ';)', '<3', ':3', 'T_T', '<\x033', ':\\', '-_-', ':-)']
     const c = await pool.connect();
     const eresp = [];
     var labels = req.body.labels;
@@ -206,6 +206,7 @@ const start = async () => {
     res.json({
       dates: uniqueDates.rows, 
       maxDate: max_res, 
+      // timezoneInfo: streamers[chatListeners.indexOf(req.body.username.slice(1))].streamerLocalTime,
       live: live,
       accentColor: streamers[chatListeners.indexOf(req.body.username.slice(1))].accentColor,
       textColor: streamers[chatListeners.indexOf(req.body.username.slice(1))].textColor
