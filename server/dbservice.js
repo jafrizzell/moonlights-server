@@ -61,7 +61,7 @@ async function liveListener(streamer) {
         startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
       } catch { startTime = new Date()}
       const c = await pool.connect();
-      q = `SELECT * FROM vod_link WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY stream_date DESC LIMIT 1`;
+      q = `SELECT * FROM vod_link_test WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY stream_date DESC LIMIT 1`;
       query_res = await c.query(q);
 
       if (query_res.rows.length > 0 && vods.data.length > 0) {
@@ -93,35 +93,42 @@ async function liveListener(streamer) {
       if (query_res.rows.length > 0) {
         if (d === query_res.rows[0].stream_date) {
           q2 = `SELECT * FROM chatters WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY ts DESC LIMIT 1`;
+          // q2 = `SELECT * FROM chatters_test WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY timestamp DESC LIMIT 1`;
           q2_res = await c.query(q2);
           streamer.samedayOffset = q2_res.rows[0].ts
+          // streamer.samedayOffset = q2_res.rows[0].timestamp
         }
       }
       c.release();
       if (streamer.live === 'true') {
-        vodSender = null;
-        while (!vodSender) {
-          try {
-            vodSender = new Sender({ bufferSize: 4096});
-            await vodSender.connect({ port: 9009, host: databaseIPV4 });
-          } catch {console.log(`failed to connect vodSender: ${d}`)}
-        }
-        vodSender
+        try {
+          vodSender = new Sender({ bufferSize: 4096});
+          await vodSender.connect({ port: 9009, host: databaseIPV4 });
+        } catch {console.log(`failed to connect vodSender: ${d}`)}
+        if (TESTING) {
+          vodSender
+            .table('vod_link')
+            .symbol('highlight_status', 'done')
+            .stringColumn('vid_no', vod_id)
+            .stringColumn('stream_date', d)
+            .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
+            .atNow()
+          await vodSender.flush();
+          // vodSender.reset();  // When testing, don't send data to the database
+        } else {
+          vodSender
           .table('vod_link')
+          .symbol('highlight_status', 'done')
           .stringColumn('vid_no', vod_id)
           .stringColumn('stream_date', d)
           .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
-          .stringColumn('highlight_status', 'done')
           .atNow();
-        if (TESTING) {
-          vodSender.reset();  // When testing, don't send data to the database
-        } else {
           await vodSender.flush();  // Send the data to the database
         }
       }
-      try {
-        await vodSender.close();
-      } catch {}
+      // try {
+      //   await vodSender.close();
+      // } catch {}
     }
   } else {
       if (streamer.live == 'true') { // if the previous state was live and the current state is not, un-initialize some variables
@@ -179,57 +186,86 @@ const insertion = async () => {
       if (streamers[roomIndex].live != 'false') {
         if (streamers[roomIndex].startTime !== null) {
           ttime = new Date(streamers[roomIndex].startTime);
+          dayOffset = streamers[roomIndex].samedayOffset.toTimeString().split(' ')[0]
           msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
           msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
-          diff = (msgTime - ttime) / 1000;
-          ttime.setHours(~~(diff/3600) + streamers[roomIndex].streamerTzOffset)
+          ttime.setHours(ttime.getHours() - streamers[roomIndex].streamerTzOffset);
+          // diff = (msgTime - ttime) / 1000;
+          diff = msgTime - ttime
+          ttime = new Date(ttime.setHours(parseInt(dayOffset.split(':')[0])))
+          ttime = new Date(ttime.setMinutes(parseInt(dayOffset.split(':')[1])))
+          ttime = new Date(ttime.setSeconds(parseInt(dayOffset.split(':')[2])))
+          ttime = ttime.setMilliseconds(0o0)
+          ttime = ttime + diff
+          // ttime.setHours(~~(diff/3600) + streamers[roomIndex].streamerTzOffset)
 
-          try {
-            ttime.setHours(ttime.getHours() + streamers[roomIndex].samedayOffset.getHours());
-          } catch {}
-          diff = diff % 3600;
-          ttime.setMinutes(~~(diff/60));
+          // try {
+          //   ttime.setHours(ttime.getHours() + streamers[roomIndex].samedayOffset.getHours());
+          // } catch {}
+          // diff = diff % 3600;
+          // ttime.setMinutes(~~(diff/60));
 
-          try {
-            ttime.setMinutes(ttime.getMinutes() + streamers[roomIndex].samedayOffset.getMinutes());
-          } catch {}
-          diff = diff % 60;
-          ttime.setSeconds(diff);
+          // try {
+          //   ttime.setMinutes(ttime.getMinutes() + streamers[roomIndex].samedayOffset.getMinutes());
+          // } catch {}
+          // diff = diff % 60;
+          // ttime.setSeconds(diff);
 
-          try {
-            ttime.setSeconds(ttime.getSeconds() + streamers[roomIndex].samedayOffset.getSeconds());
-          } catch {}
-          ttime.setMilliseconds(0o0);
+          // try {
+          //   ttime.setSeconds(ttime.getSeconds() + streamers[roomIndex].samedayOffset.getSeconds());
+          // } catch {}
+          // ttime.setMilliseconds(0o0);
           
-          ttime = ttime.getTime() + '000000';
-          try {  // for some reason the timestamp above can be invalid? So this is wrapped in a try/catch
-            c += 1;
-            sender
-              .table('chatters')
-              .symbol('stream_name', channel)
-              .stringColumn('username', tags['display-name'])
-              .stringColumn('message', message)
-              .at(ttime);
-          } catch { console.log('error encountered when sending to the chatters table')}
+          ttime = ttime + '000000';
+            if (TESTING) {
+              c += 1;
+              // await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
+              sender
+                .table('chatters_test')
+                .symbol('stream_name', channel)
+                .stringColumn('username', tags['display-name'])
+                .stringColumn('message', message)
+                .at(ttime);
+              if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
+                c = 0;
+                try {await sender.connect({ port: 9009, host: databaseIPV4 }); }  // connect the database sender
+                catch {}
+                await sender.flush();  // Send data to the database
+              };
+            } else {
+              c += 1;
+              sender
+                .table('chatters')
+                .symbol('stream_name', channel)
+                .stringColumn('username', tags['display-name'])
+                .stringColumn('message', message)
+                .at(ttime);
+              if (c > 10) {
+                c = 0;
+                try {await sender.connect({ port: 9009, host: databaseIPV4 }); }  // connect the database sender
+                catch {}
+                await sender.flush();  // Send data to the database
+              };
+            }
           }
         }
   
-      if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
-        c = 0;
-        if (TESTING) {
-
-          sender.reset();  // When testing, don't send data to the database
-        }
-        else {
-          try {
-            await sender.flush();  // Send data to the database
-            } catch {
-              sender = new Sender({bufferSize: 4096});
-              await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
-              await sender.flush();
-             }
-        }
-      };
+      // if (c > 10) {  // only send batches of 10 messages to the database to minimize traffic volume
+      //   c = 0;
+      //   if (TESTING) {
+      //     try {await sender.connect({ port: 9009, host: databaseIPV4 }); }  // connect the database sender
+      //     catch {}
+      //     await sender.flush();  // Send data to the database
+      //     // sender.reset();  // When testing, don't send data to the database
+      //   }
+      //   else {
+      //     try {await sender.connect({ port: 9009, host: databaseIPV4 }); }  // connect the database sender
+      //     catch {}
+      //     await sender.flush();  // Send data to the database
+      //   }
+      //   await sender.close();
+      //   sender = new Sender({bufferSize: 4096});
+      // };
     });
   };
   insertion().catch(console.error);
