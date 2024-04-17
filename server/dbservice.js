@@ -61,7 +61,9 @@ async function liveListener(streamer) {
         startTime = new Date(vods.data[0].creationDate);  // get the start time of the vod
       } catch { startTime = new Date()}
       const c = await pool.connect();
-      q = `SELECT * FROM vod_link_test WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY stream_date DESC LIMIT 1`;
+      q = `SELECT * FROM vod_link WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY stream_date DESC LIMIT 1`;
+      // q = `SELECT * FROM vod_link_test WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY stream_date DESC LIMIT 1`;
+      
       query_res = await c.query(q);
 
       if (query_res.rows.length > 0 && vods.data.length > 0) {
@@ -107,7 +109,7 @@ async function liveListener(streamer) {
         } catch {console.log(`failed to connect vodSender: ${d}`)}
         if (TESTING) {
           vodSender
-            .table('vod_link')
+            .table('vod_link_test')
             .symbol('highlight_status', 'done')
             .stringColumn('vid_no', vod_id)
             .stringColumn('stream_date', d)
