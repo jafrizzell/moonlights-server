@@ -188,7 +188,9 @@ const insertion = async () => {
       if (streamers[roomIndex].live != 'false') {
         if (streamers[roomIndex].startTime !== null) {
           ttime = new Date(streamers[roomIndex].startTime);
-          dayOffset = streamers[roomIndex].samedayOffset.toTimeString().split(' ')[0]
+          if (streamers[roomIndex].samedayOffset != 0) {
+            dayOffset = streamers[roomIndex].samedayOffset.toTimeString().split(' ')[0]
+          }
           msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
           msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
           ttime.setHours(ttime.getHours() - streamers[roomIndex].streamerTzOffset);
