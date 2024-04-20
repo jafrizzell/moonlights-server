@@ -190,7 +190,7 @@ const insertion = async () => {
           ttime = new Date(streamers[roomIndex].startTime);
           if (streamers[roomIndex].samedayOffset != 0) {
             dayOffset = streamers[roomIndex].samedayOffset.toTimeString().split(' ')[0]
-          }
+          } else {dayOffset = '00:00:00'}
           msgTime = new Date();  // get the current time and set the HH:MM:SS to the stream uptime
           msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
           ttime.setHours(ttime.getHours() - streamers[roomIndex].streamerTzOffset);
