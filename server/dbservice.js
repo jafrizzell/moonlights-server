@@ -196,8 +196,8 @@ const insertion = async () => {
           ttime.setHours(ttime.getHours() - streamers[roomIndex].streamerTzOffset);
           // diff = (msgTime - ttime) / 1000;
           diff = msgTime - ttime
-          ttime.setHours(ttime.getHours() - streamers[roomIndex].streamerTzOffset);
-          ttime = new Date(ttime.setHours(parseInt(dayOffset.split(':')[0])))
+          // ttime.setHours(ttime.getHours() - streamers[roomIndex].streamerTzOffset);
+          ttime = new Date(ttime.setHours(parseInt(dayOffset.split(':')[0]) - streamers[roomIndex].streamerTzOffset))
           ttime = new Date(ttime.setMinutes(parseInt(dayOffset.split(':')[1])))
           ttime = new Date(ttime.setSeconds(parseInt(dayOffset.split(':')[2])))
           ttime = ttime.setMilliseconds(0o0)
