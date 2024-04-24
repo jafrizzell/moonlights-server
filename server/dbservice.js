@@ -65,7 +65,6 @@ async function liveListener(streamer) {
       // q = `SELECT * FROM vod_link_test WHERE stream_name='#${streamer.name.toLowerCase()}' ORDER BY stream_date DESC LIMIT 1`;
       
       query_res = await c.query(q);
-
       if (query_res.rows.length > 0 && vods.data.length > 0) {
         if (query_res.rows[0].vid_no == vods.data[0].id) {  
           // Sometimes the twitch vod won't appear quickly
@@ -83,7 +82,7 @@ async function liveListener(streamer) {
 
       try {
         sender = new Sender({bufferSize: 4096});
-        await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
+        // await sender.connect({ port: 9009, host: databaseIPV4 });  // connect the database sender
       } catch { }
       streamer.startTime = startTime;
       streamer.streamerLocalTime = startTime.setHours(startTime.getHours() + streamer.streamerTzOffset)
@@ -108,17 +107,19 @@ async function liveListener(streamer) {
           await vodSender.connect({ port: 9009, host: databaseIPV4 });
         } catch {console.log(`failed to connect vodSender: ${d}`)}
         if (TESTING) {
-          vodSender
+          await vodSender
             .table('vod_link_test')
             .symbol('highlight_status', 'done')
             .stringColumn('vid_no', vod_id)
             .stringColumn('stream_date', d)
             .stringColumn('stream_name', '#'.concat(streamer.name.toLowerCase()))
-            .atNow()
+            .at('0')
           await vodSender.flush();
+          await vodSender.close();
+
           // vodSender.reset();  // When testing, don't send data to the database
         } else {
-          vodSender
+          await vodSender
           .table('vod_link')
           .symbol('highlight_status', 'done')
           .stringColumn('vid_no', vod_id)
@@ -128,9 +129,6 @@ async function liveListener(streamer) {
           await vodSender.flush();  // Send the data to the database
         }
       }
-      // try {
-      //   await vodSender.close();
-      // } catch {}
     }
   } else {
       if (streamer.live == 'true') { // if the previous state was live and the current state is not, un-initialize some variables
@@ -183,7 +181,6 @@ const insertion = async () => {
       // check live status every 5000 ms (5 seconds)
       if (new Date() - streamers[roomIndex].lastLiveCheck > 5000) {
         await liveListener(streamers[roomIndex]);
-        
       };
       if (streamers[roomIndex].live != 'false') {
         if (streamers[roomIndex].startTime !== null) {
@@ -195,13 +192,13 @@ const insertion = async () => {
           msgTime.setHours(msgTime.getHours() + streamers[roomIndex].streamerTzOffset);
           ttime.setHours(ttime.getHours() - streamers[roomIndex].streamerTzOffset);
           // diff = (msgTime - ttime) / 1000;
-          diff = msgTime - ttime
+          diff = msgTime - ttime;
           // ttime.setHours(ttime.getHours() - streamers[roomIndex].streamerTzOffset);
-          ttime = new Date(ttime.setHours(parseInt(dayOffset.split(':')[0]) - streamers[roomIndex].streamerTzOffset))
-          ttime = new Date(ttime.setMinutes(parseInt(dayOffset.split(':')[1])))
-          ttime = new Date(ttime.setSeconds(parseInt(dayOffset.split(':')[2])))
-          ttime = ttime.setMilliseconds(0o0)
-          ttime = ttime + diff
+          ttime = new Date(ttime.setHours(parseInt(dayOffset.split(':')[0]) - streamers[roomIndex].streamerTzOffset));
+          ttime = new Date(ttime.setMinutes(parseInt(dayOffset.split(':')[1])));
+          ttime = new Date(ttime.setSeconds(parseInt(dayOffset.split(':')[2])));
+          ttime = ttime.setMilliseconds(0o0);
+          ttime = ttime + diff;
           // ttime.setHours(~~(diff/3600) + streamers[roomIndex].streamerTzOffset)
 
           // try {
@@ -235,7 +232,10 @@ const insertion = async () => {
                 c = 0;
                 try {await sender.connect({ port: 9009, host: databaseIPV4 }); }  // connect the database sender
                 catch {}
+
                 await sender.flush();  // Send data to the database
+                await sender.close();
+                sender = new Sender({bufferSize: 4096});
               };
             } else {
               c += 1;
@@ -249,7 +249,10 @@ const insertion = async () => {
                 c = 0;
                 try {await sender.connect({ port: 9009, host: databaseIPV4 }); }  // connect the database sender
                 catch {}
+
                 await sender.flush();  // Send data to the database
+                await sender.close();
+                sender = new Sender({bufferSize: 4096});
               };
             }
           }
